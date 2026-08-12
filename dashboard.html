@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AR Office Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #f4f4f9; padding: 20px; }
+    .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    h2 { color: #333; margin-top: 0; }
+    label { font-weight: bold; display: block; margin-top: 20px; color: #555; }
+    textarea, input[type="text"] { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: inherit; }
+    textarea { height: 100px; resize: vertical; }
+    button { background-color: #28a745; color: white; border: none; padding: 12px 20px; font-size: 16px; border-radius: 4px; cursor: pointer; margin-top: 25px; width: 100%; font-weight: bold;}
+    button:hover { background-color: #218838; }
+    #statusMessage { margin-top: 15px; font-weight: bold; text-align: center; height: 20px;}
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h2>Control Panel: AR Office</h2>
+    <p>Update the text on your virtual whiteboard and sticky notes.</p>
+
+    <!-- Data Input Form -->
+    <label>Whiteboard Tasks (Use \n for line breaks):</label>
+    <textarea id="input-whiteboard" placeholder="- Task 1\n- Task 2\n- Task 3"></textarea>
+
+    <label>Sticky Note 1 (Yellow):</label>
+    <input type="text" id="input-note1" placeholder="e.g., Call Boss">
+
+    <label>Sticky Note 2 (Pink):</label>
+    <input type="text" id="input-note2" placeholder="e.g., Buy Milk">
+
+    <label>Sticky Note 3 (Blue):</label>
+    <input type="text" id="input-note3" placeholder="e.g., Pay Bills">
+
+    <button id="saveBtn" onclick="saveData()">Update AR Office</button>
+
+    <div id="statusMessage"></div>
+  </div>
+
+  <script>
+    // ==========================================
+    // PASTE YOUR GOOGLE APPS SCRIPT URL HERE:
+    // ==========================================
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbzEpfF8pJVOPFhJF0DJIIojictD5N9KpmmRjx7tN_0AphPqMyLhAvNxfX62zQFsygup2g/exec';
+
+    function saveData() {
+      const statusDiv = document.getElementById('statusMessage');
+      const button = document.getElementById('saveBtn');
+      
+      statusDiv.style.color = 'blue';
+      statusDiv.innerText = 'Saving to database...';
+      button.disabled = true;
+
+      const dataToSave = {
+        Whiteboard: document.getElementById('input-whiteboard').value,
+        Note1: document.getElementById('input-note1').value,
+        Note2: document.getElementById('input-note2').value,
+        Note3: document.getElementById('input-note3').value
+      };
+
+      fetch(scriptURL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(dataToSave)
+      })
+      .then(response => response.json())
+      .then(data => {
+        statusDiv.style.color = 'green';
+        statusDiv.innerText = data.status;
+        button.disabled = false;
+        
+        // Clear success message after 3 seconds
+        setTimeout(() => { statusDiv.innerText = ''; }, 3000);
+      })
+      .catch(error => {
+        statusDiv.style.color = 'red';
+        statusDiv.innerText = 'Error saving data. Check console.';
+        console.error("Save error:", error);
+        button.disabled = false;
+      });
+    }
+  </script>
+
+</body>
+</html>
