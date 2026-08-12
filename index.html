@@ -1,42 +1,50 @@
 <!DOCTYPE html>
 <html>
- <head>
-    <title>Interactive AR Office HUD</title>
+  <head>
+    <title>Streamlined AR Office HUD</title>
     
-    <!-- ========================================== -->
-    <!-- NEW: PWA Manifest & iOS Support            -->
-    <!-- ========================================== -->
-    <link rel="manifest" href="manifest.json">
+    <!-- PWA Manifest & Meta Tags -->
+    <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#00ffff">
-    <!-- Apple iOS specific tags -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="AR HUD">
-    <link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     
+    <style>
+      #install-btn {
+        display: none;
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        background-color: #00ffff;
+        color: #000;
+        font-family: Arial, sans-serif;
+        font-weight: bold;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0, 255, 255, 0.4);
+        cursor: pointer;
+      }
+    </style>
+
     <script>
-     // ==========================================
+      // ==========================================
       // PWA INSTALLATION LOGIC
       // ==========================================
       let deferredPrompt;
-
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Service Worker registered!'))
-            .catch(err => console.error('SW failed: ', err));
+          navigator.serviceWorker.register('./sw.js');
         });
       }
-
       window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
         document.getElementById('install-btn').style.display = 'block';
       });
-
       function installApp() {
         if (deferredPrompt) {
           deferredPrompt.prompt();
@@ -55,67 +63,35 @@
       const scriptURL = 'https://script.google.com/macros/s/AKfycbzEpfF8pJVOPFhJF0DJIIojictD5N9KpmmRjx7tN_0AphPqMyLhAvNxfX62zQFsygup2g/exec';
 
       // ==========================================
-      // AR SCANNING LOGIC & RESET STATE
+      // FETCH DATA ON LOAD
       // ==========================================
-      
-      // We use this variable to stop the app from scanning while reading data
-      let isHUDLocked = false; 
-
       window.onload = function() {
-        
-        // Fetch data
         fetch(scriptURL)
           .then(response => response.json())
           .then(data => {
-            document.querySelector('#locked-whiteboard-text').setAttribute('value', data.Whiteboard || "");
-            document.querySelector('#locked-note1-text').setAttribute('value', data.Note1 || "");
-            document.querySelector('#locked-note2-text').setAttribute('value', data.Note2 || "");
-            document.querySelector('#locked-note3-text').setAttribute('value', data.Note3 || "");
+            document.querySelector('#whiteboard-text').setAttribute('value', data.Whiteboard || "");
+            document.querySelector('#note1-text').setAttribute('value', data.Note1 || "");
+            document.querySelector('#note2-text').setAttribute('value', data.Note2 || "");
+            document.querySelector('#note3-text').setAttribute('value', data.Note3 || "");
           })
           .catch(error => console.error("Error fetching data:", error));
-
+          
+        // Audio Feedback
         const hiroMarker = document.querySelector('#hiro-marker');
         const kanjiMarker = document.querySelector('#kanji-marker');
-        const whiteboardUI = document.querySelector('#ui-whiteboard');
-        const stickyUI = document.querySelector('#ui-stickies');
         const scanSound = document.querySelector('#scan-sound');
 
-        // Trigger Whiteboard (Hiro)
         hiroMarker.addEventListener('markerFound', function() {
-          if (isHUDLocked) return; // If HUD is already locked, ignore this marker
-          
-          isHUDLocked = true;
           scanSound.components.sound.playSound();
-          
-          whiteboardUI.setAttribute('visible', 'true');
-          stickyUI.setAttribute('visible', 'false'); 
-          whiteboardUI.emit('trigger-anim');
         });
-
-        // Trigger Stickies (Kanji)
         kanjiMarker.addEventListener('markerFound', function() {
-          if (isHUDLocked) return; // If HUD is already locked, ignore this marker
-          
-          isHUDLocked = true;
           scanSound.components.sound.playSound();
-          
-          stickyUI.setAttribute('visible', 'true');
-          whiteboardUI.setAttribute('visible', 'false'); 
-          stickyUI.emit('trigger-anim');
         });
-
-        // Live HUD Clock
-        setInterval(() => {
-          const now = new Date();
-          const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
-          document.querySelector('#hud-clock').setAttribute('value', timeString);
-        }, 1000);
       };
 
       // ==========================================
-      // COMPONENTS
+      // INTERACTIVE COMPONENT
       // ==========================================
-      
       AFRAME.registerComponent('mark-done', {
         init: function () {
           let isDone = false;
@@ -134,141 +110,63 @@
           });
         }
       });
-
-      AFRAME.registerComponent('focus-timer', {
-        init: function () {
-          let isRunning = false;
-          let timeLeft = 25 * 60; 
-          let timerInterval;
-          const textEl = this.el;
-          this.el.addEventListener('click', function () {
-            if (isRunning) {
-              clearInterval(timerInterval);
-              textEl.setAttribute('value', 'TIMER PAUSED');
-              isRunning = false;
-            } else {
-              isRunning = true;
-              timerInterval = setInterval(() => {
-                let minutes = Math.floor(timeLeft / 60);
-                let seconds = timeLeft % 60;
-                let display = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-                textEl.setAttribute('value', `FOCUS: ${display}`);
-                if (timeLeft <= 0) {
-                  clearInterval(timerInterval);
-                  textEl.setAttribute('value', 'TIME UP!');
-                }
-                timeLeft--;
-              }, 1000);
-            }
-          });
-        }
-      });
-      
-      // CRITICAL FIX: The Close Button now resets the scanner state
-      AFRAME.registerComponent('close-hud', {
-        init: function () {
-          this.el.addEventListener('click', function () {
-            // Hide both UIs
-            document.querySelector('#ui-whiteboard').setAttribute('visible', 'false');
-            document.querySelector('#ui-stickies').setAttribute('visible', 'false');
-            
-            // Wait 1 second before allowing the camera to scan again. 
-            // This prevents it from instantly re-triggering if the phone is still pointing at the marker.
-            setTimeout(() => {
-              isHUDLocked = false; 
-              console.log("Scanner Reset. Ready for new marker.");
-            }, 1000);
-          });
-        }
-      });
     </script>
   </head>
 
   <body style="margin: 0px; overflow: hidden;">
     
-    <!-- AR Scene Setup -->
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" cursor="rayOrigin: mouse; fuse: false" raycaster="objects: .clickable">
+    <button id="install-btn" onclick="installApp()">⬇ Install AR App</button>
+
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3; sourceWidth:1280; sourceHeight:960; displayWidth: 1280; displayHeight: 960;" cursor="rayOrigin: mouse; fuse: false" raycaster="objects: .clickable">
       
       <a-assets>
         <audio id="chime" src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3?filename=success-1-6297.mp3" preload="auto"></audio>
       </a-assets>
       <a-entity id="scan-sound" sound="src: #chime; volume: 1"></a-entity>
 
-      <!-- Physical Markers -->
-      <a-marker id="hiro-marker" preset="hiro"></a-marker>
-      <a-marker id="kanji-marker" preset="kanji"></a-marker>
+      <!-- ========================================== -->
+      <!-- FRONT WALL: Hiro Marker (Whiteboard)       -->
+      <!-- ========================================== -->
+      <a-marker id="hiro-marker" preset="hiro" smooth="true" smoothCount="20" smoothTolerance="0.05" smoothThreshold="10">
+        <!-- Scaled down to 50% (scale="0.5 0.5 0.5") so it fits nicely on a phone screen without backing up -->
+        <a-entity scale="0.5 0.5 0.5" position="0 0.5 0">
+          <a-plane position="0 0 0" rotation="-90 0 0" width="4.2" height="2.2" color="#00ffff" material="opacity: 0.1; transparent: true"></a-plane>
+          <a-plane position="0 0.01 0" rotation="-90 0 0" width="4" height="2" color="#111111" material="opacity: 0.8; transparent: true">
+            <a-text value="MAIN TERMINAL" color="#00ffff" position="-1.8 0.8 0" width="4" font="exo2bold"></a-text>
+            <a-text id="whiteboard-text" value="Loading network data..." color="#ffffff" position="-1.8 0.3 0" width="3" line-height="50"></a-text>
+          </a-plane>
+        </a-entity>
+      </a-marker>
 
       <!-- ========================================== -->
-      <!-- UPDATED CAMERA & HUD RIG                   -->
+      <!-- LEFT WALL: Kanji Marker (Sticky Notes)     -->
       <!-- ========================================== -->
-      <a-entity camera look-controls>
-        
-        <!-- 
-          THE HUD CONTAINER
-          Moved back to Z: -6 so it fits entirely on a phone screen.
-        -->
-        <a-entity id="hud-container" position="0 0 -6">
+      <a-marker id="kanji-marker" preset="kanji" smooth="true" smoothCount="20" smoothTolerance="0.05" smoothThreshold="10">
+        <!-- Scaled down to 60% and lifted slightly -->
+        <a-entity scale="0.6 0.6 0.6" position="0 0.5 0">
           
-          <!-- GLOBAL CLOCK -->
-          <!-- Moved higher up to Y: 3.5 -->
-          <a-text id="hud-clock" value="00:00:00" color="#00ffff" position="-2 3.5 0" width="5" font="exo2bold"></a-text>
+          <!-- Note 1 (Yellow) -->
+          <a-plane position="-1.4 0 0" rotation="-90 0 0" width="1.2" height="1.2" color="#ffff00" material="opacity: 0.2; transparent: true"></a-plane>
+          <a-plane class="clickable" mark-done position="-1.4 0.01 0" rotation="-90 0 0" width="1.1" height="1.1" color="#222222" material="opacity: 0.9">
+            <a-text id="note1-text" value="..." color="#ffff00" align="center" position="0 0.1 0" width="3"></a-text>
+          </a-plane>
 
-          <!-- ========================================== -->
-          <!-- WHITEBOARD HUD -->
-          <!-- ========================================== -->
-          <a-entity id="ui-whiteboard" visible="false" animation="property: scale; from: 0 0 0; to: 1 1 1; dur: 400; easing: easeOutElastic; startEvents: trigger-anim">
-            
-            <!-- Main Board -->
-            <a-plane position="0 0 0" width="4.2" height="2.2" color="#00ffff" material="opacity: 0.1; transparent: true"></a-plane>
-            <a-plane position="0 0 0.01" width="4" height="2" color="#111111" material="opacity: 0.8; transparent: true">
-              <a-text value="MAIN TERMINAL" color="#00ffff" position="-1.8 0.8 0" width="4" font="exo2bold"></a-text>
-              <a-text id="locked-whiteboard-text" value="Loading network data..." color="#ffffff" position="-1.8 0.3 0" width="3" line-height="50"></a-text>
-            </a-plane>
+          <!-- Note 2 (Pink) -->
+          <a-plane position="0 0 0" rotation="-90 0 0" width="1.2" height="1.2" color="#ff00ff" material="opacity: 0.2; transparent: true"></a-plane>
+          <a-plane class="clickable" mark-done position="0 0.01 0" rotation="-90 0 0" width="1.1" height="1.1" color="#222222" material="opacity: 0.9">
+            <a-text id="note2-text" value="..." color="#ff00ff" align="center" position="0 0.1 0" width="3"></a-text>
+          </a-plane>
 
-            <!-- Buttons - Moved down to Y: -2 so they sit at the bottom of the phone screen -->
-            <a-plane class="clickable" position="-1 -2 0.01" width="1.8" height="0.6" color="#222222" material="opacity: 0.9" border="color: #00ffff; width: 0.02">
-              <a-text value="START TIMER" focus-timer color="#00ffff" align="center" position="0 0 0.02" width="3"></a-text>
-            </a-plane>
-
-            <a-plane class="clickable" close-hud position="1.2 -2 0.01" width="1.8" height="0.6" color="#ff0000" material="opacity: 0.6">
-              <a-text value="CLOSE HUD" color="#ffffff" align="center" position="0 0 0.02" width="3"></a-text>
-            </a-plane>
-
-          </a-entity>
-
-          <!-- ========================================== -->
-          <!-- STICKY NOTES HUD -->
-          <!-- ========================================== -->
-          <a-entity id="ui-stickies" visible="false" animation="property: scale; from: 0 0 0; to: 1 1 1; dur: 400; easing: easeOutElastic; startEvents: trigger-anim">
-            
-            <!-- Note 1 -->
-            <a-plane position="-1.4 0 0" width="1.2" height="1.2" color="#ffff00" material="opacity: 0.2; transparent: true"></a-plane>
-            <a-plane class="clickable" mark-done position="-1.4 0 0.01" width="1.1" height="1.1" color="#222222" material="opacity: 0.9">
-              <a-text id="locked-note1-text" value="..." color="#ffff00" align="center" position="0 0.1 0" width="3"></a-text>
-            </a-plane>
-
-            <!-- Note 2 -->
-            <a-plane position="0 0 0" width="1.2" height="1.2" color="#ff00ff" material="opacity: 0.2; transparent: true"></a-plane>
-            <a-plane class="clickable" mark-done position="0 0 0.01" width="1.1" height="1.1" color="#222222" material="opacity: 0.9">
-              <a-text id="locked-note2-text" value="..." color="#ff00ff" align="center" position="0 0.1 0" width="3"></a-text>
-            </a-plane>
-
-            <!-- Note 3 -->
-            <a-plane position="1.4 0 0" width="1.2" height="1.2" color="#00ffff" material="opacity: 0.2; transparent: true"></a-plane>
-            <a-plane class="clickable" mark-done position="1.4 0 0.01" width="1.1" height="1.1" color="#222222" material="opacity: 0.9">
-              <a-text id="locked-note3-text" value="..." color="#00ffff" align="center" position="0 0.1 0" width="3"></a-text>
-            </a-plane>
-
-            <!-- Close Button - Moved down to Y: -2 -->
-            <a-plane class="clickable" close-hud position="0 -2 0.01" width="2" height="0.6" color="#ff0000" material="opacity: 0.6">
-              <a-text value="CLOSE HUD" color="#ffffff" align="center" position="0 0 0.02" width="3"></a-text>
-            </a-plane>
-            
-          </a-entity>
+          <!-- Note 3 (Cyan) -->
+          <a-plane position="1.4 0 0" rotation="-90 0 0" width="1.2" height="1.2" color="#00ffff" material="opacity: 0.2; transparent: true"></a-plane>
+          <a-plane class="clickable" mark-done position="1.4 0.01 0" rotation="-90 0 0" width="1.1" height="1.1" color="#222222" material="opacity: 0.9">
+            <a-text id="note3-text" value="..." color="#00ffff" align="center" position="0 0.1 0" width="3"></a-text>
+          </a-plane>
 
         </a-entity>
-      </a-entity>
-      
+      </a-marker>
+
+      <a-entity camera></a-entity>
     </a-scene>
   </body>
 </html>
