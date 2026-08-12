@@ -1,255 +1,158 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>Premium AR Office HUD</title>
-  
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#00ffff">
-  <!-- Ensure perfect scaling on mobile -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  
-  <!-- Import a futuristic, highly readable font -->
-  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
-
-  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-
-  <style>
-    /* ==========================================
-       PROFESSIONAL CSS UI (OVERLAY)
-       ========================================== */
-    body {
-      margin: 0;
-      overflow: hidden;
-      font-family: 'Rajdhani', sans-serif;
-    }
-
-    /* PWA Install Button */
-    #install-btn {
-      display: none;
-      position: absolute; top: 15px; right: 15px; z-index: 9999;
-      background: #00ffff; color: #000; font-weight: 700;
-      border: none; padding: 10px 20px; border-radius: 8px;
-      box-shadow: 0 4px 15px rgba(0, 255, 255, 0.4);
-      cursor: pointer; font-family: inherit; font-size: 16px;
-    }
-
-    /* The invisible layer that sits over the camera */
-    #ui-layer {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100vw; height: 100vh;
-      z-index: 1000;
-      pointer-events: none; /* Let the camera work underneath */
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    /* The Glassmorphism Panels */
-    .hud-panel {
-      display: none; /* Hidden until scanned */
-      pointer-events: auto; /* Allow tapping */
-      width: 90%;
-      max-width: 450px;
-      max-height: 80vh;
-      background: rgba(10, 10, 15, 0.85);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(0, 255, 255, 0.3);
-      border-radius: 16px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 255, 255, 0.1);
-      padding: 20px;
-      box-sizing: border-box;
-      flex-direction: column;
-      animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-    }
-
-    @keyframes popIn {
-      from { opacity: 0; transform: scale(0.8); }
-      to { opacity: 1; transform: scale(1); }
-    }
-
-    .hud-header {
-      color: #00ffff; font-size: 24px; font-weight: 700;
-      text-transform: uppercase; border-bottom: 1px solid rgba(0, 255, 255, 0.2);
-      padding-bottom: 10px; margin-bottom: 15px; letter-spacing: 2px;
-    }
-
-    /* Scrollable Text Area */
-    .hud-content {
-      color: #ffffff; font-size: 18px; line-height: 1.5;
-      overflow-y: auto; max-height: 50vh; white-space: pre-wrap;
-      margin-bottom: 20px;
-    }
-
-    /* Sticky Notes Grid */
-    .sticky-grid {
-      display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;
-    }
-
-    .sticky-item {
-      background: rgba(255, 255, 255, 0.05);
-      border-left: 5px solid #00ffff;
-      padding: 15px; border-radius: 8px;
-      color: #fff; font-size: 18px; font-weight: 600;
-      transition: all 0.3s ease; cursor: pointer;
-    }
+  <head>
+    <title>Native 3D AR Office</title>
     
-    .sticky-item[data-color="yellow"] { border-color: #ffff00; }
-    .sticky-item[data-color="pink"] { border-color: #ff00ff; }
-    .sticky-item[data-color="cyan"] { border-color: #00ffff; }
+    <!-- PWA Install Config -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-    .sticky-item.completed {
-      background: rgba(0, 255, 0, 0.1);
-      border-color: #00ff00; color: #00ff00;
-      text-decoration: line-through;
-    }
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
-    /* Action Buttons */
-    .btn-close {
-      width: 100%; padding: 12px; background: rgba(255, 0, 0, 0.2);
-      border: 1px solid rgba(255, 0, 0, 0.5); border-radius: 8px;
-      color: #ff4444; font-size: 18px; font-weight: 700; font-family: inherit;
-      cursor: pointer; text-transform: uppercase; transition: 0.2s;
-    }
-    .btn-close:hover, .btn-close:active { background: rgba(255, 0, 0, 0.4); color: #fff; }
+    <style>
+      /* Clean background styling */
+      body {
+        margin: 0px;
+        overflow: hidden;
+      }
+    </style>
 
-  </style>
-
-  <script>
-    // ==========================================
-    // PWA & APP LOGIC
-    // ==========================================
-    let deferredPrompt;
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js'); });
-    }
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault(); deferredPrompt = e;
-      document.getElementById('install-btn').style.display = 'block';
-    });
-    function installApp() {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.then((choice) => {
-          if (choice.outcome === 'accepted') document.getElementById('install-btn').style.display = 'none';
-          deferredPrompt = null;
+    <script>
+      // ==========================================
+      // PWA SERVICE WORKER REGISTRATION
+      // ==========================================
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => { 
+          navigator.serviceWorker.register('./sw.js'); 
         });
       }
-    }
 
-    // Google Apps Script Data Source
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbzEpfF8pJVOPFhJF0DJIIojictD5N9KpmmRjx7tN_0AphPqMyLhAvNxfX62zQFsygup2g/exec';
-    
-    let isHUDLocked = false; 
+      // ==========================================
+      // FETCH DATA FROM GOOGLE SHEETS
+      // ==========================================
+      const scriptURL = 'https://script.google.com/macros/s/AKfycbzEpfF8pJVOPFhJF0DJIIojictD5N9KpmmRjx7tN_0AphPqMyLhAvNxfX62zQFsygup2g/exec';
 
-    // Fetch and Initialize Data
-    window.onload = function() {
-      fetch(scriptURL)
-        .then(response => response.json())
-        .then(data => {
-          // Inject data into HTML UI
-          document.getElementById('wb-data').textContent = data.Whiteboard || "No Data";
-          document.getElementById('note1-data').textContent = data.Note1 || "...";
-          document.getElementById('note2-data').textContent = data.Note2 || "...";
-          document.getElementById('note3-data').textContent = data.Note3 || "...";
-        })
-        .catch(error => console.error("Error fetching data:", error));
+      window.onload = function() {
+        fetch(scriptURL)
+          .then(response => response.json())
+          .then(data => {
+            document.querySelector('#board-data').setAttribute('value', data.Whiteboard || "No tasks written yet.");
+            document.querySelector('#note1-data').setAttribute('value', data.Note1 || "...");
+            document.querySelector('#note2-data').setAttribute('value', data.Note2 || "...");
+            document.querySelector('#note3-data').setAttribute('value', data.Note3 || "...");
+          })
+          .catch(error => console.error("Error loading data:", error));
 
-      // Connect AR Markers to HTML UI
-      const hiroMarker = document.querySelector('#hiro-marker');
-      const kanjiMarker = document.querySelector('#kanji-marker');
-      const scanSound = document.querySelector('#scan-sound');
-      
-      const pnlWhiteboard = document.getElementById('panel-whiteboard');
-      const pnlStickies = document.getElementById('panel-stickies');
+        // Audio feedback on scan
+        const hiroMarker = document.querySelector('#hiro-marker');
+        const kanjiMarker = document.querySelector('#kanji-marker');
+        const scanSound = document.querySelector('#scan-sound');
 
-      // Scan Hiro
-      hiroMarker.addEventListener('markerFound', function() {
-        if (isHUDLocked) return;
-        isHUDLocked = true;
-        scanSound.components.sound.playSound();
-        pnlWhiteboard.style.display = 'flex';
+        hiroMarker.addEventListener('markerFound', () => scanSound.components.sound.playSound());
+        kanjiMarker.addEventListener('markerFound', () => scanSound.components.sound.playSound());
+      };
+
+      // ==========================================
+      // INTERACTIVE STICKY NOTES (3D Taps)
+      // ==========================================
+      AFRAME.registerComponent('mark-done', {
+        init: function () {
+          let isDone = false;
+          let originalColor = this.el.getAttribute('color');
+          
+          this.el.addEventListener('click', function () {
+            if (!isDone) {
+              // Mark as complete (turn green)
+              this.setAttribute('color', '#d4edda'); 
+              this.querySelector('a-text').setAttribute('value', 'DONE ✓');
+              this.querySelector('a-text').setAttribute('color', '#155724');
+              isDone = true;
+            } else {
+              // Revert back to original note
+              this.setAttribute('color', originalColor);
+              this.querySelector('a-text').setAttribute('value', 'Reset'); 
+              this.querySelector('a-text').setAttribute('color', '#000000');
+              isDone = false;
+            }
+          });
+        }
       });
+    </script>
+  </head>
 
-      // Scan Kanji
-      kanjiMarker.addEventListener('markerFound', function() {
-        if (isHUDLocked) return;
-        isHUDLocked = true;
-        scanSound.components.sound.playSound();
-        pnlStickies.style.display = 'flex';
-      });
-    };
+  <body>
 
-    // UI Interactions
-    function closeHUD() {
-      document.getElementById('panel-whiteboard').style.display = 'none';
-      document.getElementById('panel-stickies').style.display = 'none';
-      // Unlock scanner after a short delay
-      setTimeout(() => { isHUDLocked = false; }, 1000);
-    }
+    <!-- AR Scene with high-res camera feed, raycaster for clicking, and lighting -->
+    <a-scene embedded 
+             arjs="sourceType: webcam; debugUIEnabled: false; sourceWidth: 1280; sourceHeight: 720; displayWidth: 1280; displayHeight: 720;" 
+             cursor="rayOrigin: mouse; fuse: false" 
+             raycaster="objects: .clickable"
+             vr-mode-ui="enabled: false">
+             
+      <a-assets>
+        <audio id="chime" src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3?filename=success-1-6297.mp3" preload="auto"></audio>
+      </a-assets>
+      <a-entity id="scan-sound" sound="src: #chime; volume: 1"></a-entity>
 
-    function toggleTask(element) {
-      if (element.classList.contains('completed')) {
-        element.classList.remove('completed');
-      } else {
-        element.classList.add('completed');
-      }
-    }
-  </script>
-</head>
+      <!-- ========================================== -->
+      <!-- FRONT WALL: NATIVE WHITEBOARD (Hiro)       -->
+      <!-- ========================================== -->
+      <a-marker id="hiro-marker" preset="hiro" smooth="true" smoothCount="10" smoothTolerance="0.01" smoothThreshold="5">
+        
+        <!-- Scaled down so it fits nicely on screen -->
+        <a-entity scale="0.65 0.65 0.65" position="0 0.5 0" rotation="-90 0 0">
+          
+          <!-- Aluminum Frame Base -->
+          <a-plane width="4.2" height="3.2" color="#cccccc" position="0 0 0"></a-plane>
+          
+          <!-- White Dry-Erase Surface -->
+          <a-plane width="4" height="3" color="#ffffff" position="0 0 0.02">
+            
+            <!-- Title -->
+            <a-text value="PROJECT WHITEBOARD" color="#555555" position="-1.8 1.2 0.01" width="4" font="roboto"></a-text>
+            <!-- Blue divider line -->
+            <a-plane width="3.6" height="0.02" color="#007bff" position="0 1.05 0.01"></a-plane>
+            
+            <!-- Data Text (Anchored top-left, wrapping enabled) -->
+            <a-text id="board-data" value="Loading..." color="#000000" position="-1.8 0.9 0.01" width="3.6" wrap-count="35" anchor="left" baseline="top" line-height="55" font="roboto"></a-text>
+            
+          </a-plane>
 
-<body>
-  
-  <button id="install-btn" onclick="installApp()">⬇ Install AR App</button>
+        </a-entity>
+      </a-marker>
 
-  <!-- ==========================================
-       THE 2D HTML OVERLAY UI (FRONT)
-       ========================================== -->
-  <div id="ui-layer">
-    
-    <!-- Whiteboard Panel -->
-    <div id="panel-whiteboard" class="hud-panel">
-      <div class="hud-header">Main Terminal</div>
-      <div id="wb-data" class="hud-content">Loading network data...</div>
-      <button class="btn-close" onclick="closeHUD()">Close Terminal</button>
-    </div>
+      <!-- ========================================== -->
+      <!-- LEFT WALL: ORGANIC STICKY NOTES (Kanji)    -->
+      <!-- ========================================== -->
+      <a-marker id="kanji-marker" preset="kanji" smooth="true" smoothCount="10" smoothTolerance="0.01" smoothThreshold="5">
+        
+        <a-entity scale="0.8 0.8 0.8" position="0 0.5 0" rotation="-90 0 0">
+          
+          <!-- Sticky Note 1 (Yellow - Tilted slightly left) -->
+          <a-plane class="clickable" mark-done position="-1.4 0 0" rotation="0 0 3" width="1.2" height="1.2" color="#FDFFB6">
+            <a-plane width="1.2" height="1.2" color="#000000" material="opacity: 0.1" position="0.05 -0.05 -0.01"></a-plane>
+            <a-text id="note1-data" value="..." color="#000000" align="center" position="0 0 0.02" width="2.5" wrap-count="12"></a-text>
+          </a-plane>
 
-    <!-- Sticky Notes Panel -->
-    <div id="panel-stickies" class="hud-panel">
-      <div class="hud-header">Active Tasks</div>
-      <div class="sticky-grid">
-        <div class="sticky-item" data-color="yellow" onclick="toggleTask(this)">
-          <span id="note1-data">Loading...</span>
-        </div>
-        <div class="sticky-item" data-color="pink" onclick="toggleTask(this)">
-          <span id="note2-data">Loading...</span>
-        </div>
-        <div class="sticky-item" data-color="cyan" onclick="toggleTask(this)">
-          <span id="note3-data">Loading...</span>
-        </div>
-      </div>
-      <button class="btn-close" onclick="closeHUD()">Close Tasks</button>
-    </div>
+          <!-- Sticky Note 2 (Pink - Tilted slightly right) -->
+          <a-plane class="clickable" mark-done position="0 0 0" rotation="0 0 -2" width="1.2" height="1.2" color="#FFADAD">
+            <a-plane width="1.2" height="1.2" color="#000000" material="opacity: 0.1" position="0.05 -0.05 -0.01"></a-plane>
+            <a-text id="note2-data" value="..." color="#000000" align="center" position="0 0 0.02" width="2.5" wrap-count="12"></a-text>
+          </a-plane>
 
-  </div>
+          <!-- Sticky Note 3 (Blue - Straight) -->
+          <a-plane class="clickable" mark-done position="1.4 0 0" rotation="0 0 1" width="1.2" height="1.2" color="#A0C4FF">
+            <a-plane width="1.2" height="1.2" color="#000000" material="opacity: 0.1" position="0.05 -0.05 -0.01"></a-plane>
+            <a-text id="note3-data" value="..." color="#000000" align="center" position="0 0 0.02" width="2.5" wrap-count="12"></a-text>
+          </a-plane>
 
-  <!-- ==========================================
-       THE 3D AR CAMERA BACKBONE (BACK)
-       ========================================== -->
-  <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;">
-    <a-assets>
-      <audio id="chime" src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3?filename=success-1-6297.mp3" preload="auto"></audio>
-    </a-assets>
-    <a-entity id="scan-sound" sound="src: #chime; volume: 1"></a-entity>
+        </a-entity>
+      </a-marker>
 
-    <!-- The physical triggers on the wall. They are empty now because the UI handles the visuals -->
-    <a-marker id="hiro-marker" preset="hiro" smooth="true"></a-marker>
-    <a-marker id="kanji-marker" preset="kanji" smooth="true"></a-marker>
+      <a-entity camera></a-entity>
+    </a-scene>
 
-    <a-entity camera></a-entity>
-  </a-scene>
-
-</body>
+  </body>
 </html>
