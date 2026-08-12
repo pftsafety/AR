@@ -1,16 +1,40 @@
 <!DOCTYPE html>
 <html>
-  <head>
+ <head>
     <title>Interactive AR Office HUD</title>
+    
+    <!-- ========================================== -->
+    <!-- NEW: PWA Manifest & iOS Support            -->
+    <!-- ========================================== -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#00ffff">
+    <!-- Apple iOS specific tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="AR HUD">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     
     <script>
       // ==========================================
-      // 1. YOUR GOOGLE APPS SCRIPT URL HERE
+      // NEW: Register the Service Worker
+      // ==========================================
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Service Worker registered!', reg))
+            .catch(err => console.error('Service Worker registration failed: ', err));
+        });
+      }
+
+      // ==========================================
+      // YOUR GOOGLE APPS SCRIPT URL IS SAVED HERE
       // ==========================================
       const scriptURL = 'https://script.google.com/macros/s/AKfycbzEpfF8pJVOPFhJF0DJIIojictD5N9KpmmRjx7tN_0AphPqMyLhAvNxfX62zQFsygup2g/exec';
 
+      // ... [Keep all your existing window.onload code below here exactly as it is] ...
       // 2. Data Fetching & Core Logic
       window.onload = function() {
         
