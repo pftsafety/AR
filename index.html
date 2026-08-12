@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Premium AR Workspace HUD</title>
-    <!-- Import A-Frame and AR.js -->
+    <title>Interactive AR Office HUD</title>
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     
@@ -12,8 +11,10 @@
       // ==========================================
       const scriptURL = 'YOUR_WEB_APP_URL_HERE';
 
-      // 2. Data Fetching
+      // 2. Data Fetching & Core Logic
       window.onload = function() {
+        
+        // Fetch data from Sheets
         fetch(scriptURL)
           .then(response => response.json())
           .then(data => {
@@ -24,24 +25,20 @@
           })
           .catch(error => console.error("Error fetching data:", error));
 
-        // 3. Setup Triggers and Audio
+        // Setup Triggers
         const hiroMarker = document.querySelector('#hiro-marker');
         const kanjiMarker = document.querySelector('#kanji-marker');
         const whiteboardUI = document.querySelector('#ui-whiteboard');
         const stickyUI = document.querySelector('#ui-stickies');
-        
-        // Grab the audio element
         const scanSound = document.querySelector('#scan-sound');
 
         // Trigger Whiteboard
         hiroMarker.addEventListener('markerFound', function() {
           if (whiteboardUI.getAttribute('visible') === false) {
-            scanSound.components.sound.playSound(); // Play the chime
+            scanSound.components.sound.playSound();
           }
           whiteboardUI.setAttribute('visible', 'true');
           stickyUI.setAttribute('visible', 'false'); 
-          
-          // Trigger the 'scale-up' animation
           whiteboardUI.emit('trigger-anim');
         });
 
@@ -52,13 +49,82 @@
           }
           stickyUI.setAttribute('visible', 'true');
           whiteboardUI.setAttribute('visible', 'false'); 
-          
           stickyUI.emit('trigger-anim');
         });
+
+        // ==========================================
+        // NEW FUNCTION 1: Live HUD Clock
+        // ==========================================
+        setInterval(() => {
+          const now = new Date();
+          const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+          document.querySelector('#hud-clock').setAttribute('value', timeString);
+        }, 1000);
       };
+
+      // ==========================================
+      // NEW FUNCTION 2: Interactive "Mark Done" Component
+      // ==========================================
+      AFRAME.registerComponent('mark-done', {
+        init: function () {
+          let isDone = false;
+          let originalColor = this.el.getAttribute('color');
+          
+          this.el.addEventListener('click', function () {
+            if (!isDone) {
+              // Change background plate to Green
+              this.setAttribute('color', '#00ff00');
+              // Find the text child and change it to DONE
+              this.querySelector('a-text').setAttribute('value', 'COMPLETED');
+              this.querySelector('a-text').setAttribute('color', '#00ff00');
+              isDone = true;
+            } else {
+              // Revert back
+              this.setAttribute('color', originalColor);
+              // (Ideally, you would re-fetch the original text here, but for now we just clear it)
+              this.querySelector('a-text').setAttribute('value', 'Reset'); 
+              isDone = false;
+            }
+          });
+        }
+      });
+
+      // ==========================================
+      // NEW FUNCTION 3: Tap-to-Start Timer Component
+      // ==========================================
+      AFRAME.registerComponent('focus-timer', {
+        init: function () {
+          let isRunning = false;
+          let timeLeft = 25 * 60; // 25 minutes
+          let timerInterval;
+          const textEl = this.el;
+
+          this.el.addEventListener('click', function () {
+            if (isRunning) {
+              clearInterval(timerInterval);
+              textEl.setAttribute('value', 'TIMER PAUSED');
+              isRunning = false;
+            } else {
+              isRunning = true;
+              timerInterval = setInterval(() => {
+                let minutes = Math.floor(timeLeft / 60);
+                let seconds = timeLeft % 60;
+                let display = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                textEl.setAttribute('value', `FOCUS: ${display}`);
+                
+                if (timeLeft <= 0) {
+                  clearInterval(timerInterval);
+                  textEl.setAttribute('value', 'TIME UP!');
+                }
+                timeLeft--;
+              }, 1000);
+            }
+          });
+        }
+      });
       
-      // Tap anywhere on the screen to close the HUD
-      AFRAME.registerComponent('dismiss-on-click', {
+      // Close button component (Replaces tap-anywhere-to-close)
+      AFRAME.registerComponent('close-hud', {
         init: function () {
           this.el.addEventListener('click', function () {
             document.querySelector('#ui-whiteboard').setAttribute('visible', 'false');
@@ -70,66 +136,73 @@
   </head>
 
   <body style="margin: 0px; overflow: hidden;">
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" cursor="rayOrigin: mouse" dismiss-on-click>
+    
+    <!-- IMPORTANT: Added raycaster to the cursor so it only interacts with objects carrying the 'clickable' class -->
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" cursor="rayOrigin: mouse; fuse: false" raycaster="objects: .clickable">
       
-      <!-- ========================================== -->
-      <!-- ASSETS: Pre-load the sound effect -->
-      <!-- ========================================== -->
       <a-assets>
-        <!-- A free, futuristic UI chime from a sound library -->
         <audio id="chime" src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3?filename=success-1-6297.mp3" preload="auto"></audio>
       </a-assets>
-
       <a-entity id="scan-sound" sound="src: #chime; volume: 1"></a-entity>
 
-      <!-- ========================================== -->
-      <!-- THE PHYSICAL TRIGGERS -->
-      <!-- ========================================== -->
+      <!-- Markers -->
       <a-marker id="hiro-marker" preset="hiro"></a-marker>
       <a-marker id="kanji-marker" preset="kanji"></a-marker>
 
-      <!-- ========================================== -->
-      <!-- THE HEADS-UP DISPLAY (HUD) -->
-      <!-- ========================================== -->
+      <!-- CAMERA & HUD -->
       <a-entity camera look-controls>
         
+        <!-- GLOBAL HUD ELEMENTS (Always visible) -->
+        <a-text id="hud-clock" value="00:00:00" color="#00ffff" position="-1.5 2.5 -3" width="5" font="exo2bold"></a-text>
+
         <!-- WHITEBOARD HUD -->
-        <!-- Added animation: scales from 0 to 1 over 0.4 seconds when 'trigger-anim' is emitted -->
-        <a-entity id="ui-whiteboard" visible="false" position="0 0 -3" 
-                  animation="property: scale; from: 0 0 0; to: 1 1 1; dur: 400; easing: easeOutElastic; startEvents: trigger-anim">
+        <a-entity id="ui-whiteboard" visible="false" position="0 0 -3" animation="property: scale; from: 0 0 0; to: 1 1 1; dur: 400; easing: easeOutElastic; startEvents: trigger-anim">
           
-          <!-- Holographic Glassmorphism styling -->
           <a-plane position="0 0 0" width="4.2" height="2.2" color="#00ffff" material="opacity: 0.1; transparent: true"></a-plane>
           <a-plane position="0 0 0.01" width="4" height="2" color="#111111" material="opacity: 0.8; transparent: true">
             <a-text value="MAIN TERMINAL" color="#00ffff" position="-1.8 0.8 0" width="4" font="exo2bold"></a-text>
             <a-text id="locked-whiteboard-text" value="Loading network data..." color="#ffffff" position="-1.8 0.3 0" width="3" line-height="50"></a-text>
           </a-plane>
+
+          <!-- Interactive Timer Button -->
+          <a-plane class="clickable" position="0 -1.3 0.01" width="1.5" height="0.4" color="#222222" material="opacity: 0.9" border="color: #00ffff; width: 0.02">
+            <a-text value="START TIMER" focus-timer color="#00ffff" align="center" position="0 0 0.02" width="2"></a-text>
+          </a-plane>
+
+          <!-- Close HUD Button -->
+          <a-plane class="clickable" close-hud position="1.5 -1.3 0.01" width="1" height="0.4" color="#ff0000" material="opacity: 0.6">
+            <a-text value="CLOSE HUD" color="#ffffff" align="center" position="0 0 0.02" width="2"></a-text>
+          </a-plane>
+
         </a-entity>
 
         <!-- STICKY NOTES HUD -->
-        <a-entity id="ui-stickies" visible="false" position="0 0 -3"
-                  animation="property: scale; from: 0 0 0; to: 1 1 1; dur: 400; easing: easeOutElastic; startEvents: trigger-anim">
+        <a-entity id="ui-stickies" visible="false" position="0 0 -3" animation="property: scale; from: 0 0 0; to: 1 1 1; dur: 400; easing: easeOutElastic; startEvents: trigger-anim">
           
-          <!-- Neon Yellow Data Pod -->
+          <!-- Note 1 (Now Clickable) -->
           <a-plane position="-1.2 0 0" width="1" height="1" color="#ffff00" material="opacity: 0.2; transparent: true"></a-plane>
-          <a-plane position="-1.2 0 0.01" width="0.9" height="0.9" color="#222222" material="opacity: 0.9">
+          <a-plane class="clickable" mark-done position="-1.2 0 0.01" width="0.9" height="0.9" color="#222222" material="opacity: 0.9">
             <a-text id="locked-note1-text" value="..." color="#ffff00" align="center" position="0 0.1 0" width="3"></a-text>
           </a-plane>
 
-          <!-- Neon Pink Data Pod -->
+          <!-- Note 2 (Now Clickable) -->
           <a-plane position="0 0 0" width="1" height="1" color="#ff00ff" material="opacity: 0.2; transparent: true"></a-plane>
-          <a-plane position="0 0 0.01" width="0.9" height="0.9" color="#222222" material="opacity: 0.9">
+          <a-plane class="clickable" mark-done position="0 0 0.01" width="0.9" height="0.9" color="#222222" material="opacity: 0.9">
             <a-text id="locked-note2-text" value="..." color="#ff00ff" align="center" position="0 0.1 0" width="3"></a-text>
           </a-plane>
 
-          <!-- Neon Cyan Data Pod -->
+          <!-- Note 3 (Now Clickable) -->
           <a-plane position="1.2 0 0" width="1" height="1" color="#00ffff" material="opacity: 0.2; transparent: true"></a-plane>
-          <a-plane position="1.2 0 0.01" width="0.9" height="0.9" color="#222222" material="opacity: 0.9">
+          <a-plane class="clickable" mark-done position="1.2 0 0.01" width="0.9" height="0.9" color="#222222" material="opacity: 0.9">
             <a-text id="locked-note3-text" value="..." color="#00ffff" align="center" position="0 0.1 0" width="3"></a-text>
+          </a-plane>
+
+          <!-- Close HUD Button for Stickies -->
+          <a-plane class="clickable" close-hud position="0 -1.3 0.01" width="1" height="0.4" color="#ff0000" material="opacity: 0.6">
+            <a-text value="CLOSE HUD" color="#ffffff" align="center" position="0 0 0.02" width="2"></a-text>
           </a-plane>
           
         </a-entity>
-
       </a-entity>
       
     </a-scene>
