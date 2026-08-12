@@ -1,77 +1,108 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Room-Scale AR Office Workspace - Stabilized</title>
+    <title>AR Office - Screen Locked Data</title>
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     
     <script>
       // ==========================================
-      // YOUR GOOGLE APPS SCRIPT URL
+      // YOUR GOOGLE APPS SCRIPT URL HERE
       // ==========================================
-      const scriptURL = 'https://script.google.com/macros/s/AKfycbzEpfF8pJVOPFhJF0DJIIojictD5N9KpmmRjx7tN_0AphPqMyLhAvNxfX62zQFsygup2g/exec';
+      const scriptURL = 'YOUR_WEB_APP_URL_HERE';
 
+      // 1. Fetch data from Google Sheets immediately
       window.onload = function() {
-        console.log("Fetching data from Google Sheets...");
-        
         fetch(scriptURL)
           .then(response => response.json())
           .then(data => {
-            document.querySelector('#whiteboard-text').setAttribute('value', data.Whiteboard || "");
-            document.querySelector('#note1-text').setAttribute('value', data.Note1 || "");
-            document.querySelector('#note2-text').setAttribute('value', data.Note2 || "");
-            document.querySelector('#note3-text').setAttribute('value', data.Note3 || "");
+            // Update the locked screen elements
+            document.querySelector('#locked-whiteboard-text').setAttribute('value', data.Whiteboard || "");
+            document.querySelector('#locked-note1-text').setAttribute('value', data.Note1 || "");
+            document.querySelector('#locked-note2-text').setAttribute('value', data.Note2 || "");
+            document.querySelector('#locked-note3-text').setAttribute('value', data.Note3 || "");
           })
-          .catch(error => {
-            console.error("Error fetching data:", error);
-            document.querySelector('#whiteboard-text').setAttribute('value', "Error loading data.");
-          });
+          .catch(error => console.error("Error fetching data:", error));
+
+        // 2. Set up the Screen Lock Logic
+        const hiroMarker = document.querySelector('#hiro-marker');
+        const kanjiMarker = document.querySelector('#kanji-marker');
+        
+        const whiteboardUI = document.querySelector('#ui-whiteboard');
+        const stickyUI = document.querySelector('#ui-stickies');
+
+        // When Hiro is found, show the Whiteboard on screen
+        hiroMarker.addEventListener('markerFound', function() {
+          whiteboardUI.setAttribute('visible', 'true');
+          stickyUI.setAttribute('visible', 'false'); // Hide the other one
+        });
+
+        // When Kanji is found, show the Stickies on screen
+        kanjiMarker.addEventListener('markerFound', function() {
+          stickyUI.setAttribute('visible', 'true');
+          whiteboardUI.setAttribute('visible', 'false'); // Hide the other one
+        });
       };
+      
+      // Optional: A component to allow the user to tap the screen to dismiss the data
+      AFRAME.registerComponent('dismiss-on-click', {
+        init: function () {
+          this.el.addEventListener('click', function () {
+            document.querySelector('#ui-whiteboard').setAttribute('visible', 'false');
+            document.querySelector('#ui-stickies').setAttribute('visible', 'false');
+          });
+        }
+      });
     </script>
   </head>
 
   <body style="margin: 0px; overflow: hidden;">
-    <!-- AR Scene Setup -->
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;">
+    <!-- Add cursor to allow tapping to dismiss -->
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" cursor="rayOrigin: mouse" dismiss-on-click>
       
       <!-- ========================================== -->
-      <!-- FRONT WALL: Hiro Marker (STABILIZED)       -->
+      <!-- THE PHYSICAL TRIGGERS (Markers) -->
       <!-- ========================================== -->
-      <!-- Added smoothing properties to prevent flickering -->
-      <a-marker preset="hiro" smooth="true" smoothCount="10" smoothTolerance="0.01" smoothThreshold="5">
-        <a-plane position="0 0 0" rotation="-90 0 0" width="4" height="2" color="#F0F0F0" material="opacity: 0.95">
-          <a-text value="PROJECT BOARD" color="#333333" position="-1.8 0.8 0" width="4" font="kelsonsans"></a-text>
-          <a-text id="whiteboard-text" value="Loading data..." color="#000000" position="-1.8 0.3 0" width="3" line-height="50"></a-text>
-        </a-plane>
-      </a-marker>
+      <!-- These are now empty! They just act as switches -->
+      <a-marker id="hiro-marker" preset="hiro"></a-marker>
+      <a-marker id="kanji-marker" preset="kanji"></a-marker>
 
       <!-- ========================================== -->
-      <!-- LEFT WALL: Kanji Marker (STABILIZED)       -->
+      <!-- THE CAMERA & LOCKED SCREEN UI -->
       <!-- ========================================== -->
-      <!-- Added smoothing properties to prevent flickering -->
-      <a-marker preset="kanji" smooth="true" smoothCount="10" smoothTolerance="0.01" smoothThreshold="5">
+      <a-entity camera look-controls>
         
-        <!-- Sticky Note 1 (Yellow) -->
-        <a-plane position="-1.2 0 0" rotation="-90 0 0" width="1" height="1" color="#FDFD96"
-                 animation="property: position; to: -1.2 0.2 0; dir: alternate; dur: 2000; loop: true; easing: easeInOutSine">
-          <a-text id="note1-text" value="..." color="black" align="center" position="0 0.1 0" width="3"></a-text>
-        </a-plane>
+        <!-- LOCKED WHITEBOARD UI (Hidden by default) -->
+        <!-- Positioned relative to the camera lens (-Z is forward, Y is up/down, X is left/right) -->
+        <a-entity id="ui-whiteboard" visible="false" position="0 0 -3">
+          <a-plane position="0 0 0" width="4" height="2" color="#F0F0F0" material="opacity: 0.95">
+            <a-text value="PROJECT BOARD" color="#333333" position="-1.8 0.8 0" width="4" font="kelsonsans"></a-text>
+            <a-text id="locked-whiteboard-text" value="Loading data..." color="#000000" position="-1.8 0.3 0" width="3" line-height="50"></a-text>
+          </a-plane>
+        </a-entity>
 
-        <!-- Sticky Note 2 (Pink) -->
-        <a-plane position="0 0 0" rotation="-90 0 0" width="1" height="1" color="#FFB7B2"
-                 animation="property: position; to: 0 0.2 0; dir: alternate; dur: 2200; loop: true; easing: easeInOutSine">
-          <a-text id="note2-text" value="..." color="black" align="center" position="0 0.1 0" width="3"></a-text>
-        </a-plane>
+        <!-- LOCKED STICKY NOTES UI (Hidden by default) -->
+        <a-entity id="ui-stickies" visible="false" position="0 0 -3">
+          
+          <!-- Sticky Note 1 -->
+          <a-plane position="-1.2 0 0" width="1" height="1" color="#FDFD96">
+            <a-text id="locked-note1-text" value="..." color="black" align="center" position="0 0.1 0" width="3"></a-text>
+          </a-plane>
 
-        <!-- Sticky Note 3 (Blue) -->
-        <a-plane position="1.2 0 0" rotation="-90 0 0" width="1" height="1" color="#AEC6CF"
-                 animation="property: position; to: 1.2 0.2 0; dir: alternate; dur: 1800; loop: true; easing: easeInOutSine">
-          <a-text id="note3-text" value="..." color="black" align="center" position="0 0.1 0" width="3"></a-text>
-        </a-plane>
-        
-      </a-marker>
+          <!-- Sticky Note 2 -->
+          <a-plane position="0 0 0" width="1" height="1" color="#FFB7B2">
+            <a-text id="locked-note2-text" value="..." color="black" align="center" position="0 0.1 0" width="3"></a-text>
+          </a-plane>
 
-      <a-entity camera></a-entity>
+          <!-- Sticky Note 3 -->
+          <a-plane position="1.2 0 0" width="1" height="1" color="#AEC6CF">
+            <a-text id="locked-note3-text" value="..." color="black" align="center" position="0 0.1 0" width="3"></a-text>
+          </a-plane>
+          
+        </a-entity>
+
+      </a-entity>
+      
     </a-scene>
   </body>
 </html>
