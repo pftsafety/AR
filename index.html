@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Interactive AR Office</title>
+    <title>Instant AR Office HUD</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#00ffff">
@@ -59,8 +59,13 @@
       // ==========================================
       const scriptURL = 'https://script.google.com/macros/s/AKfycbzEpfF8pJVOPFhJF0DJIIojictD5N9KpmmRjx7tN_0AphPqMyLhAvNxfX62zQFsygup2g/exec';
 
-      // Fetch Data
+      // ==========================================
+      // INSTANT SCAN LOGIC
+      // ==========================================
+      let isHUDLocked = false; // Prevents the scanner from glitching while reading
+
       window.onload = function() {
+        // Fetch Data from Google Sheets
         fetch(scriptURL)
           .then(response => response.json())
           .then(data => {
@@ -70,38 +75,56 @@
             document.querySelector('#note3-data').setAttribute('value', data.Note3 || "...");
           })
           .catch(error => console.error("Error fetching data:", error));
+
+        const hiroMarker = document.querySelector('#hiro-marker');
+        const kanjiMarker = document.querySelector('#kanji-marker');
+        const whiteboardUI = document.querySelector('#ui-whiteboard');
+        const stickyUI = document.querySelector('#ui-stickies');
+        const scanSound = document.querySelector('#scan-sound');
+
+        // INSTANT TRIGGER: Hiro Marker
+        hiroMarker.addEventListener('markerFound', function() {
+          if (isHUDLocked) return; // Ignore if screen is already locked
+          isHUDLocked = true;
+          
+          scanSound.components.sound.playSound(); // Play chime
+          whiteboardUI.setAttribute('visible', 'true');
+          stickyUI.setAttribute('visible', 'false');
+          whiteboardUI.emit('pop-in');
+        });
+
+        // INSTANT TRIGGER: Kanji Marker
+        kanjiMarker.addEventListener('markerFound', function() {
+          if (isHUDLocked) return; // Ignore if screen is already locked
+          isHUDLocked = true;
+          
+          scanSound.components.sound.playSound(); // Play chime
+          stickyUI.setAttribute('visible', 'true');
+          whiteboardUI.setAttribute('visible', 'false');
+          stickyUI.emit('pop-in');
+        });
       };
 
       // ==========================================
       // INTERACTIVE COMPONENTS
       // ==========================================
 
-      // 1. Component to Open the HUD from the physical marker
-      AFRAME.registerComponent('open-hud', {
-        schema: { target: { type: 'string' } },
-        init: function () {
-          this.el.addEventListener('click', () => {
-            // Play sound
-            document.querySelector('#scan-sound').components.sound.playSound();
-            // Show the targeted HUD
-            document.querySelector(this.data.target).setAttribute('visible', 'true');
-            // Animate it in
-            document.querySelector(this.data.target).emit('pop-in');
-          });
-        }
-      });
-
-      // 2. Component to Close the HUD
+      // Component to Close the HUD and Reset Scanner
       AFRAME.registerComponent('close-hud', {
         init: function () {
           this.el.addEventListener('click', () => {
             document.querySelector('#ui-whiteboard').setAttribute('visible', 'false');
             document.querySelector('#ui-stickies').setAttribute('visible', 'false');
+            
+            // Wait 1.5 seconds before allowing a new scan (prevents instant accidental re-scans)
+            setTimeout(() => {
+              isHUDLocked = false; 
+            }, 1500);
           });
         }
       });
 
-      // 3. Component to interact with tasks (Mark as Done)
+      // Component to interact with tasks (Mark as Done)
       AFRAME.registerComponent('mark-done', {
         init: function () {
           let isDone = false;
@@ -136,24 +159,14 @@
       <a-entity id="scan-sound" sound="src: #chime; volume: 1"></a-entity>
 
       <!-- ========================================== -->
-      <!-- THE PHYSICAL MARKERS (WALL TRIGGERS)       -->
+      <!-- THE PHYSICAL MARKERS (EMPTY TRIGGERS)      -->
       <!-- ========================================== -->
       
       <!-- HIRO MARKER -->
-      <a-marker id="hiro-marker" preset="hiro" smooth="true">
-        <!-- Floating interactive button over the marker -->
-        <a-plane class="clickable" open-hud="target: #ui-whiteboard" position="0 0.5 0" rotation="-90 0 0" width="2" height="0.8" color="#00ffff" material="opacity: 0.8">
-          <a-text value="TAP TO OPEN\nWHITEBOARD" color="#000000" align="center" position="0 0 0.05" width="4" font="exo2bold"></a-text>
-        </a-plane>
-      </a-marker>
+      <a-marker id="hiro-marker" preset="hiro"></a-marker>
 
       <!-- KANJI MARKER -->
-      <a-marker id="kanji-marker" preset="kanji" smooth="true">
-        <!-- Floating interactive button over the marker -->
-        <a-plane class="clickable" open-hud="target: #ui-stickies" position="0 0.5 0" rotation="-90 0 0" width="2" height="0.8" color="#ff00ff" material="opacity: 0.8">
-          <a-text value="TAP TO OPEN\nSTICKY NOTES" color="#000000" align="center" position="0 0 0.05" width="4" font="exo2bold"></a-text>
-        </a-plane>
-      </a-marker>
+      <a-marker id="kanji-marker" preset="kanji"></a-marker>
 
       <!-- ========================================== -->
       <!-- THE SCREEN-LOCKED HUD (NO FLICKERING)      -->
@@ -163,7 +176,7 @@
         <!-- Container pushed back so it fits nicely on screen -->
         <a-entity id="hud-container" position="0 0 -5">
           
-          <!-- WHITEBOARD UI (Hidden until tapped) -->
+          <!-- WHITEBOARD UI (Locked to screen instantly upon scan) -->
           <a-entity id="ui-whiteboard" visible="false" animation="property: scale; from: 0 0 0; to: 1 1 1; dur: 300; easing: easeOutQuad; startEvents: pop-in">
             <!-- Data Board -->
             <a-plane position="0 0.5 0" width="3.2" height="2" color="#111111" material="opacity: 0.95" border="color: #00ffff; width: 0.02">
@@ -176,7 +189,7 @@
             </a-plane>
           </a-entity>
 
-          <!-- STICKY NOTES UI (Hidden until tapped) -->
+          <!-- STICKY NOTES UI (Locked to screen instantly upon scan) -->
           <a-entity id="ui-stickies" visible="false" animation="property: scale; from: 0 0 0; to: 1 1 1; dur: 300; easing: easeOutQuad; startEvents: pop-in">
             <!-- Sticky Note 1 -->
             <a-plane class="clickable" mark-done position="-1.2 0.5 0" width="1" height="1" color="#ffff00" material="opacity: 0.95">
