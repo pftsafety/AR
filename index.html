@@ -1,22 +1,22 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>AR Office - Screen Locked Data</title>
+    <title>Premium AR Workspace HUD</title>
+    <!-- Import A-Frame and AR.js -->
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     
     <script>
       // ==========================================
-      // YOUR GOOGLE APPS SCRIPT URL HERE
+      // 1. YOUR GOOGLE APPS SCRIPT URL HERE
       // ==========================================
       const scriptURL = 'YOUR_WEB_APP_URL_HERE';
 
-      // 1. Fetch data from Google Sheets immediately
+      // 2. Data Fetching
       window.onload = function() {
         fetch(scriptURL)
           .then(response => response.json())
           .then(data => {
-            // Update the locked screen elements
             document.querySelector('#locked-whiteboard-text').setAttribute('value', data.Whiteboard || "");
             document.querySelector('#locked-note1-text').setAttribute('value', data.Note1 || "");
             document.querySelector('#locked-note2-text').setAttribute('value', data.Note2 || "");
@@ -24,27 +24,40 @@
           })
           .catch(error => console.error("Error fetching data:", error));
 
-        // 2. Set up the Screen Lock Logic
+        // 3. Setup Triggers and Audio
         const hiroMarker = document.querySelector('#hiro-marker');
         const kanjiMarker = document.querySelector('#kanji-marker');
-        
         const whiteboardUI = document.querySelector('#ui-whiteboard');
         const stickyUI = document.querySelector('#ui-stickies');
+        
+        // Grab the audio element
+        const scanSound = document.querySelector('#scan-sound');
 
-        // When Hiro is found, show the Whiteboard on screen
+        // Trigger Whiteboard
         hiroMarker.addEventListener('markerFound', function() {
+          if (whiteboardUI.getAttribute('visible') === false) {
+            scanSound.components.sound.playSound(); // Play the chime
+          }
           whiteboardUI.setAttribute('visible', 'true');
-          stickyUI.setAttribute('visible', 'false'); // Hide the other one
+          stickyUI.setAttribute('visible', 'false'); 
+          
+          // Trigger the 'scale-up' animation
+          whiteboardUI.emit('trigger-anim');
         });
 
-        // When Kanji is found, show the Stickies on screen
+        // Trigger Stickies
         kanjiMarker.addEventListener('markerFound', function() {
+          if (stickyUI.getAttribute('visible') === false) {
+             scanSound.components.sound.playSound();
+          }
           stickyUI.setAttribute('visible', 'true');
-          whiteboardUI.setAttribute('visible', 'false'); // Hide the other one
+          whiteboardUI.setAttribute('visible', 'false'); 
+          
+          stickyUI.emit('trigger-anim');
         });
       };
       
-      // Optional: A component to allow the user to tap the screen to dismiss the data
+      // Tap anywhere on the screen to close the HUD
       AFRAME.registerComponent('dismiss-on-click', {
         init: function () {
           this.el.addEventListener('click', function () {
@@ -57,46 +70,62 @@
   </head>
 
   <body style="margin: 0px; overflow: hidden;">
-    <!-- Add cursor to allow tapping to dismiss -->
     <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" cursor="rayOrigin: mouse" dismiss-on-click>
       
       <!-- ========================================== -->
-      <!-- THE PHYSICAL TRIGGERS (Markers) -->
+      <!-- ASSETS: Pre-load the sound effect -->
       <!-- ========================================== -->
-      <!-- These are now empty! They just act as switches -->
+      <a-assets>
+        <!-- A free, futuristic UI chime from a sound library -->
+        <audio id="chime" src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3?filename=success-1-6297.mp3" preload="auto"></audio>
+      </a-assets>
+
+      <a-entity id="scan-sound" sound="src: #chime; volume: 1"></a-entity>
+
+      <!-- ========================================== -->
+      <!-- THE PHYSICAL TRIGGERS -->
+      <!-- ========================================== -->
       <a-marker id="hiro-marker" preset="hiro"></a-marker>
       <a-marker id="kanji-marker" preset="kanji"></a-marker>
 
       <!-- ========================================== -->
-      <!-- THE CAMERA & LOCKED SCREEN UI -->
+      <!-- THE HEADS-UP DISPLAY (HUD) -->
       <!-- ========================================== -->
       <a-entity camera look-controls>
         
-        <!-- LOCKED WHITEBOARD UI (Hidden by default) -->
-        <!-- Positioned relative to the camera lens (-Z is forward, Y is up/down, X is left/right) -->
-        <a-entity id="ui-whiteboard" visible="false" position="0 0 -3">
-          <a-plane position="0 0 0" width="4" height="2" color="#F0F0F0" material="opacity: 0.95">
-            <a-text value="PROJECT BOARD" color="#333333" position="-1.8 0.8 0" width="4" font="kelsonsans"></a-text>
-            <a-text id="locked-whiteboard-text" value="Loading data..." color="#000000" position="-1.8 0.3 0" width="3" line-height="50"></a-text>
+        <!-- WHITEBOARD HUD -->
+        <!-- Added animation: scales from 0 to 1 over 0.4 seconds when 'trigger-anim' is emitted -->
+        <a-entity id="ui-whiteboard" visible="false" position="0 0 -3" 
+                  animation="property: scale; from: 0 0 0; to: 1 1 1; dur: 400; easing: easeOutElastic; startEvents: trigger-anim">
+          
+          <!-- Holographic Glassmorphism styling -->
+          <a-plane position="0 0 0" width="4.2" height="2.2" color="#00ffff" material="opacity: 0.1; transparent: true"></a-plane>
+          <a-plane position="0 0 0.01" width="4" height="2" color="#111111" material="opacity: 0.8; transparent: true">
+            <a-text value="MAIN TERMINAL" color="#00ffff" position="-1.8 0.8 0" width="4" font="exo2bold"></a-text>
+            <a-text id="locked-whiteboard-text" value="Loading network data..." color="#ffffff" position="-1.8 0.3 0" width="3" line-height="50"></a-text>
           </a-plane>
         </a-entity>
 
-        <!-- LOCKED STICKY NOTES UI (Hidden by default) -->
-        <a-entity id="ui-stickies" visible="false" position="0 0 -3">
+        <!-- STICKY NOTES HUD -->
+        <a-entity id="ui-stickies" visible="false" position="0 0 -3"
+                  animation="property: scale; from: 0 0 0; to: 1 1 1; dur: 400; easing: easeOutElastic; startEvents: trigger-anim">
           
-          <!-- Sticky Note 1 -->
-          <a-plane position="-1.2 0 0" width="1" height="1" color="#FDFD96">
-            <a-text id="locked-note1-text" value="..." color="black" align="center" position="0 0.1 0" width="3"></a-text>
+          <!-- Neon Yellow Data Pod -->
+          <a-plane position="-1.2 0 0" width="1" height="1" color="#ffff00" material="opacity: 0.2; transparent: true"></a-plane>
+          <a-plane position="-1.2 0 0.01" width="0.9" height="0.9" color="#222222" material="opacity: 0.9">
+            <a-text id="locked-note1-text" value="..." color="#ffff00" align="center" position="0 0.1 0" width="3"></a-text>
           </a-plane>
 
-          <!-- Sticky Note 2 -->
-          <a-plane position="0 0 0" width="1" height="1" color="#FFB7B2">
-            <a-text id="locked-note2-text" value="..." color="black" align="center" position="0 0.1 0" width="3"></a-text>
+          <!-- Neon Pink Data Pod -->
+          <a-plane position="0 0 0" width="1" height="1" color="#ff00ff" material="opacity: 0.2; transparent: true"></a-plane>
+          <a-plane position="0 0 0.01" width="0.9" height="0.9" color="#222222" material="opacity: 0.9">
+            <a-text id="locked-note2-text" value="..." color="#ff00ff" align="center" position="0 0.1 0" width="3"></a-text>
           </a-plane>
 
-          <!-- Sticky Note 3 -->
-          <a-plane position="1.2 0 0" width="1" height="1" color="#AEC6CF">
-            <a-text id="locked-note3-text" value="..." color="black" align="center" position="0 0.1 0" width="3"></a-text>
+          <!-- Neon Cyan Data Pod -->
+          <a-plane position="1.2 0 0" width="1" height="1" color="#00ffff" material="opacity: 0.2; transparent: true"></a-plane>
+          <a-plane position="1.2 0 0.01" width="0.9" height="0.9" color="#222222" material="opacity: 0.9">
+            <a-text id="locked-note3-text" value="..." color="#00ffff" align="center" position="0 0.1 0" width="3"></a-text>
           </a-plane>
           
         </a-entity>
