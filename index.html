@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Native 3D AR Office</title>
+    <title>Stable 3D AR Office</title>
     
-    <!-- PWA Install Config -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#ffffff">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -12,26 +11,16 @@
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
     <style>
-      /* Clean background styling */
-      body {
-        margin: 0px;
-        overflow: hidden;
-      }
+      body { margin: 0px; overflow: hidden; }
     </style>
 
     <script>
-      // ==========================================
-      // PWA SERVICE WORKER REGISTRATION
-      // ==========================================
+      // Background PWA Worker
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => { 
-          navigator.serviceWorker.register('./sw.js'); 
-        });
+        window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js'); });
       }
 
-      // ==========================================
-      // FETCH DATA FROM GOOGLE SHEETS
-      // ==========================================
+      // Fetch Data from Google Sheets
       const scriptURL = 'https://script.google.com/macros/s/AKfycbzEpfF8pJVOPFhJF0DJIIojictD5N9KpmmRjx7tN_0AphPqMyLhAvNxfX62zQFsygup2g/exec';
 
       window.onload = function() {
@@ -54,9 +43,7 @@
         kanjiMarker.addEventListener('markerFound', () => scanSound.components.sound.playSound());
       };
 
-      // ==========================================
-      // INTERACTIVE STICKY NOTES (3D Taps)
-      // ==========================================
+      // Interactive 3D Sticky Notes
       AFRAME.registerComponent('mark-done', {
         init: function () {
           let isDone = false;
@@ -64,13 +51,11 @@
           
           this.el.addEventListener('click', function () {
             if (!isDone) {
-              // Mark as complete (turn green)
               this.setAttribute('color', '#d4edda'); 
               this.querySelector('a-text').setAttribute('value', 'DONE ✓');
               this.querySelector('a-text').setAttribute('color', '#155724');
               isDone = true;
             } else {
-              // Revert back to original note
               this.setAttribute('color', originalColor);
               this.querySelector('a-text').setAttribute('value', 'Reset'); 
               this.querySelector('a-text').setAttribute('color', '#000000');
@@ -84,9 +69,9 @@
 
   <body>
 
-    <!-- AR Scene with high-res camera feed, raycaster for clicking, and lighting -->
+    <!-- AR Scene optimized for maximum stability and high framerate tracking -->
     <a-scene embedded 
-             arjs="sourceType: webcam; debugUIEnabled: false; sourceWidth: 1280; sourceHeight: 720; displayWidth: 1280; displayHeight: 720;" 
+             arjs="sourceType: webcam; debugUIEnabled: false; sourceWidth: 1280; sourceHeight: 720; displayWidth: 1280; displayHeight: 720; detectionMode: mono_and_matrix; matrixCodeType: 3x3;" 
              cursor="rayOrigin: mouse; fuse: false" 
              raycaster="objects: .clickable"
              vr-mode-ui="enabled: false">
@@ -97,52 +82,48 @@
       <a-entity id="scan-sound" sound="src: #chime; volume: 1"></a-entity>
 
       <!-- ========================================== -->
-      <!-- FRONT WALL: NATIVE WHITEBOARD (Hiro)       -->
+      <!-- FRONT WALL: WHITEBOARD WITH HIGH SMOOTHING -->
       <!-- ========================================== -->
-      <a-marker id="hiro-marker" preset="hiro" smooth="true" smoothCount="10" smoothTolerance="0.01" smoothThreshold="5">
+      <!-- 
+        smooth="true": Enables position filtering to stop jitter.
+        smoothCount="20": Averages movement over 20 frames for rock-solid stability.
+        smoothTolerance="0.01": Ignores micro-shakes from hand movement.
+      -->
+      <a-marker id="hiro-marker" preset="hiro" smooth="true" smoothCount="20" smoothTolerance="0.01" smoothThreshold="5">
         
-        <!-- Scaled down so it fits nicely on screen -->
         <a-entity scale="0.65 0.65 0.65" position="0 0.5 0" rotation="-90 0 0">
-          
           <!-- Aluminum Frame Base -->
           <a-plane width="4.2" height="3.2" color="#cccccc" position="0 0 0"></a-plane>
           
           <!-- White Dry-Erase Surface -->
           <a-plane width="4" height="3" color="#ffffff" position="0 0 0.02">
-            
-            <!-- Title -->
             <a-text value="PROJECT WHITEBOARD" color="#555555" position="-1.8 1.2 0.01" width="4" font="roboto"></a-text>
-            <!-- Blue divider line -->
             <a-plane width="3.6" height="0.02" color="#007bff" position="0 1.05 0.01"></a-plane>
-            
-            <!-- Data Text (Anchored top-left, wrapping enabled) -->
             <a-text id="board-data" value="Loading..." color="#000000" position="-1.8 0.9 0.01" width="3.6" wrap-count="35" anchor="left" baseline="top" line-height="55" font="roboto"></a-text>
-            
           </a-plane>
-
         </a-entity>
       </a-marker>
 
       <!-- ========================================== -->
-      <!-- LEFT WALL: ORGANIC STICKY NOTES (Kanji)    -->
+      <!-- LEFT WALL: STICKY NOTES WITH SMOOTHING     -->
       <!-- ========================================== -->
-      <a-marker id="kanji-marker" preset="kanji" smooth="true" smoothCount="10" smoothTolerance="0.01" smoothThreshold="5">
+      <a-marker id="kanji-marker" preset="kanji" smooth="true" smoothCount="20" smoothTolerance="0.01" smoothThreshold="5">
         
         <a-entity scale="0.8 0.8 0.8" position="0 0.5 0" rotation="-90 0 0">
           
-          <!-- Sticky Note 1 (Yellow - Tilted slightly left) -->
+          <!-- Sticky Note 1 (Yellow) -->
           <a-plane class="clickable" mark-done position="-1.4 0 0" rotation="0 0 3" width="1.2" height="1.2" color="#FDFFB6">
             <a-plane width="1.2" height="1.2" color="#000000" material="opacity: 0.1" position="0.05 -0.05 -0.01"></a-plane>
             <a-text id="note1-data" value="..." color="#000000" align="center" position="0 0 0.02" width="2.5" wrap-count="12"></a-text>
           </a-plane>
 
-          <!-- Sticky Note 2 (Pink - Tilted slightly right) -->
+          <!-- Sticky Note 2 (Pink) -->
           <a-plane class="clickable" mark-done position="0 0 0" rotation="0 0 -2" width="1.2" height="1.2" color="#FFADAD">
             <a-plane width="1.2" height="1.2" color="#000000" material="opacity: 0.1" position="0.05 -0.05 -0.01"></a-plane>
             <a-text id="note2-data" value="..." color="#000000" align="center" position="0 0 0.02" width="2.5" wrap-count="12"></a-text>
           </a-plane>
 
-          <!-- Sticky Note 3 (Blue - Straight) -->
+          <!-- Sticky Note 3 (Blue) -->
           <a-plane class="clickable" mark-done position="1.4 0 0" rotation="0 0 1" width="1.2" height="1.2" color="#A0C4FF">
             <a-plane width="1.2" height="1.2" color="#000000" material="opacity: 0.1" position="0.05 -0.05 -0.01"></a-plane>
             <a-text id="note3-data" value="..." color="#000000" align="center" position="0 0 0.02" width="2.5" wrap-count="12"></a-text>
