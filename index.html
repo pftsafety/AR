@@ -62,10 +62,9 @@
       // ==========================================
       // INSTANT SCAN LOGIC
       // ==========================================
-      let isHUDLocked = false; // Prevents the scanner from glitching while reading
+      let isHUDLocked = false; 
 
       window.onload = function() {
-        // Fetch Data from Google Sheets
         fetch(scriptURL)
           .then(response => response.json())
           .then(data => {
@@ -82,23 +81,19 @@
         const stickyUI = document.querySelector('#ui-stickies');
         const scanSound = document.querySelector('#scan-sound');
 
-        // INSTANT TRIGGER: Hiro Marker
         hiroMarker.addEventListener('markerFound', function() {
-          if (isHUDLocked) return; // Ignore if screen is already locked
+          if (isHUDLocked) return; 
           isHUDLocked = true;
-          
-          scanSound.components.sound.playSound(); // Play chime
+          scanSound.components.sound.playSound(); 
           whiteboardUI.setAttribute('visible', 'true');
           stickyUI.setAttribute('visible', 'false');
           whiteboardUI.emit('pop-in');
         });
 
-        // INSTANT TRIGGER: Kanji Marker
         kanjiMarker.addEventListener('markerFound', function() {
-          if (isHUDLocked) return; // Ignore if screen is already locked
+          if (isHUDLocked) return; 
           isHUDLocked = true;
-          
-          scanSound.components.sound.playSound(); // Play chime
+          scanSound.components.sound.playSound(); 
           stickyUI.setAttribute('visible', 'true');
           whiteboardUI.setAttribute('visible', 'false');
           stickyUI.emit('pop-in');
@@ -108,23 +103,16 @@
       // ==========================================
       // INTERACTIVE COMPONENTS
       // ==========================================
-
-      // Component to Close the HUD and Reset Scanner
       AFRAME.registerComponent('close-hud', {
         init: function () {
           this.el.addEventListener('click', () => {
             document.querySelector('#ui-whiteboard').setAttribute('visible', 'false');
             document.querySelector('#ui-stickies').setAttribute('visible', 'false');
-            
-            // Wait 1.5 seconds before allowing a new scan (prevents instant accidental re-scans)
-            setTimeout(() => {
-              isHUDLocked = false; 
-            }, 1500);
+            setTimeout(() => { isHUDLocked = false; }, 1500);
           });
         }
       });
 
-      // Component to interact with tasks (Mark as Done)
       AFRAME.registerComponent('mark-done', {
         init: function () {
           let isDone = false;
@@ -150,7 +138,6 @@
     
     <button id="install-btn" onclick="installApp()">⬇ Install AR App</button>
 
-    <!-- Raycaster added so we can click 3D objects with our finger -->
     <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" cursor="rayOrigin: mouse; fuse: false" raycaster="objects: .clickable">
       
       <a-assets>
@@ -158,53 +145,57 @@
       </a-assets>
       <a-entity id="scan-sound" sound="src: #chime; volume: 1"></a-entity>
 
-      <!-- ========================================== -->
-      <!-- THE PHYSICAL MARKERS (EMPTY TRIGGERS)      -->
-      <!-- ========================================== -->
-      
-      <!-- HIRO MARKER -->
+      <!-- PHYSICAL MARKERS -->
       <a-marker id="hiro-marker" preset="hiro"></a-marker>
-
-      <!-- KANJI MARKER -->
       <a-marker id="kanji-marker" preset="kanji"></a-marker>
 
-      <!-- ========================================== -->
-      <!-- THE SCREEN-LOCKED HUD (NO FLICKERING)      -->
-      <!-- ========================================== -->
-      
       <a-entity camera look-controls>
-        <!-- Container pushed back so it fits nicely on screen -->
-        <a-entity id="hud-container" position="0 0 -5">
+        <!-- Pushed back to Z: -6 so the larger board fits perfectly on a vertical phone screen -->
+        <a-entity id="hud-container" position="0 0 -6">
           
-          <!-- WHITEBOARD UI (Locked to screen instantly upon scan) -->
+          <!-- ========================================== -->
+          <!-- WHITEBOARD UI                              -->
+          <!-- ========================================== -->
           <a-entity id="ui-whiteboard" visible="false" animation="property: scale; from: 0 0 0; to: 1 1 1; dur: 300; easing: easeOutQuad; startEvents: pop-in">
-            <!-- Data Board -->
-            <a-plane position="0 0.5 0" width="3.2" height="2" color="#111111" material="opacity: 0.95" border="color: #00ffff; width: 0.02">
-              <a-text value="MAIN TERMINAL" color="#00ffff" position="-1.4 0.7 0" width="3.5" font="exo2bold"></a-text>
-              <a-text id="board-data" value="Loading data..." color="#ffffff" position="-1.4 0.2 0" width="2.5" line-height="50"></a-text>
+            
+            <!-- Taller Board (Height: 3.5) -->
+            <a-plane position="0 0.5 0" width="4.2" height="3.5" color="#111111" material="opacity: 0.95" border="color: #00ffff; width: 0.02">
+              
+              <!-- Anchored Top-Left so text flows naturally downward -->
+              <a-text value="MAIN TERMINAL" color="#00ffff" position="-1.9 1.4 0" width="4" font="exo2bold" anchor="left" baseline="top"></a-text>
+              
+              <!-- wrap-count="35" forces line breaks so data never leaves the board -->
+              <a-text id="board-data" value="Loading data..." color="#ffffff" position="-1.9 1.0 0" width="3.8" wrap-count="35" anchor="left" baseline="top" line-height="50"></a-text>
             </a-plane>
+
             <!-- Close Button -->
-            <a-plane class="clickable" close-hud position="0 -0.8 0.01" width="1.5" height="0.4" color="#ff0000" material="opacity: 0.8">
+            <a-plane class="clickable" close-hud position="0 -1.8 0.01" width="2" height="0.6" color="#ff0000" material="opacity: 0.8">
               <a-text value="CLOSE" color="#ffffff" align="center" position="0 0 0.02" width="3" font="exo2bold"></a-text>
             </a-plane>
           </a-entity>
 
-          <!-- STICKY NOTES UI (Locked to screen instantly upon scan) -->
+          <!-- ========================================== -->
+          <!-- STICKY NOTES UI                            -->
+          <!-- ========================================== -->
           <a-entity id="ui-stickies" visible="false" animation="property: scale; from: 0 0 0; to: 1 1 1; dur: 300; easing: easeOutQuad; startEvents: pop-in">
-            <!-- Sticky Note 1 -->
-            <a-plane class="clickable" mark-done position="-1.2 0.5 0" width="1" height="1" color="#ffff00" material="opacity: 0.95">
-              <a-text id="note1-data" value="..." color="#000000" align="center" position="0 0 0.02" width="3"></a-text>
+            
+            <!-- Sticky Note 1 (Added wrap-count="15" for better text fitting) -->
+            <a-plane class="clickable" mark-done position="-1.4 0.5 0" width="1.2" height="1.2" color="#ffff00" material="opacity: 0.95">
+              <a-text id="note1-data" value="..." color="#000000" align="center" position="0 0 0.02" width="2.5" wrap-count="15"></a-text>
             </a-plane>
+            
             <!-- Sticky Note 2 -->
-            <a-plane class="clickable" mark-done position="0 0.5 0" width="1" height="1" color="#ff00ff" material="opacity: 0.95">
-              <a-text id="note2-data" value="..." color="#000000" align="center" position="0 0 0.02" width="3"></a-text>
+            <a-plane class="clickable" mark-done position="0 0.5 0" width="1.2" height="1.2" color="#ff00ff" material="opacity: 0.95">
+              <a-text id="note2-data" value="..." color="#000000" align="center" position="0 0 0.02" width="2.5" wrap-count="15"></a-text>
             </a-plane>
+            
             <!-- Sticky Note 3 -->
-            <a-plane class="clickable" mark-done position="1.2 0.5 0" width="1" height="1" color="#00ffff" material="opacity: 0.95">
-              <a-text id="note3-data" value="..." color="#000000" align="center" position="0 0 0.02" width="3"></a-text>
+            <a-plane class="clickable" mark-done position="1.4 0.5 0" width="1.2" height="1.2" color="#00ffff" material="opacity: 0.95">
+              <a-text id="note3-data" value="..." color="#000000" align="center" position="0 0 0.02" width="2.5" wrap-count="15"></a-text>
             </a-plane>
+
             <!-- Close Button -->
-            <a-plane class="clickable" close-hud position="0 -0.4 0.01" width="1.5" height="0.4" color="#ff0000" material="opacity: 0.8">
+            <a-plane class="clickable" close-hud position="0 -0.6 0.01" width="2" height="0.6" color="#ff0000" material="opacity: 0.8">
               <a-text value="CLOSE" color="#ffffff" align="center" position="0 0 0.02" width="3" font="exo2bold"></a-text>
             </a-plane>
           </a-entity>
