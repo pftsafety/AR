@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Room-Scale AR Office Workspace</title>
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    
+    <script>
+      // ==========================================
+      // PASTE YOUR GOOGLE APPS SCRIPT URL HERE:
+      // ==========================================
+      const scriptURL = 'https://script.google.com/macros/s/AKfycbzEpfF8pJVOPFhJF0DJIIojictD5N9KpmmRjx7tN_0AphPqMyLhAvNxfX62zQFsygup2g/exec';
+
+      window.onload = function() {
+        console.log("Fetching data from Google Sheets...");
+        
+        fetch(scriptURL)
+          .then(response => response.json())
+          .then(data => {
+            document.querySelector('#whiteboard-text').setAttribute('value', data.Whiteboard || "");
+            document.querySelector('#note1-text').setAttribute('value', data.Note1 || "");
+            document.querySelector('#note2-text').setAttribute('value', data.Note2 || "");
+            document.querySelector('#note3-text').setAttribute('value', data.Note3 || "");
+          })
+          .catch(error => {
+            console.error("Error fetching data:", error);
+            document.querySelector('#whiteboard-text').setAttribute('value', "Error loading data.");
+          });
+      };
+    </script>
+  </head>
+
+  <body style="margin: 0px; overflow: hidden;">
+    <!-- AR Scene Setup -->
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;">
+      
+      <!-- ========================================== -->
+      <!-- FRONT WALL: Hiro Marker (Whiteboard Only)  -->
+      <!-- ========================================== -->
+      <a-marker preset="hiro">
+        <a-plane position="0 0 0" rotation="-90 0 0" width="4" height="2" color="#F0F0F0" material="opacity: 0.95">
+          <a-text value="PROJECT BOARD" color="#333333" position="-1.8 0.8 0" width="4" font="kelsonsans"></a-text>
+          <a-text id="whiteboard-text" value="Loading data..." color="#000000" position="-1.8 0.3 0" width="3" line-height="50"></a-text>
+        </a-plane>
+      </a-marker>
+
+
+      <!-- ========================================== -->
+      <!-- LEFT WALL: Kanji Marker (Animated Sticky Notes) -->
+      <!-- ========================================== -->
+      <a-marker preset="kanji">
+        
+        <!-- Sticky Note 1 (Yellow) - Left Side -->
+        <!-- Animates Y from 0 to 0.2 over 2 seconds -->
+        <a-plane position="-1.2 0 0" rotation="-90 0 0" width="1" height="1" color="#FDFD96"
+                 animation="property: position; to: -1.2 0.2 0; dir: alternate; dur: 2000; loop: true; easing: easeInOutSine">
+          <a-text id="note1-text" value="..." color="black" align="center" position="0 0.1 0" width="3"></a-text>
+        </a-plane>
+
+        <!-- Sticky Note 2 (Pink) - Center -->
+        <!-- Animates Y from 0 to 0.2 over 2.2 seconds (slightly slower) -->
+        <a-plane position="0 0 0" rotation="-90 0 0" width="1" height="1" color="#FFB7B2"
+                 animation="property: position; to: 0 0.2 0; dir: alternate; dur: 2200; loop: true; easing: easeInOutSine">
+          <a-text id="note2-text" value="..." color="black" align="center" position="0 0.1 0" width="3"></a-text>
+        </a-plane>
+
+        <!-- Sticky Note 3 (Blue) - Right Side -->
+        <!-- Animates Y from 0 to 0.2 over 1.8 seconds (slightly faster) -->
+        <a-plane position="1.2 0 0" rotation="-90 0 0" width="1" height="1" color="#AEC6CF"
+                 animation="property: position; to: 1.2 0.2 0; dir: alternate; dur: 1800; loop: true; easing: easeInOutSine">
+          <a-text id="note3-text" value="..." color="black" align="center" position="0 0.1 0" width="3"></a-text>
+        </a-plane>
+        
+      </a-marker>
+
+      <!-- User Camera -->
+      <a-entity camera></a-entity>
+    </a-scene>
+  </body>
+</html>
