@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Streamlined AR Office HUD</title>
+    <title>Interactive AR Office</title>
     
-    <!-- PWA Manifest & Meta Tags -->
-    <link rel="manifest" href="./manifest.json">
+    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#00ffff">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
@@ -32,13 +31,11 @@
 
     <script>
       // ==========================================
-      // PWA INSTALLATION LOGIC
+      // PWA INSTALLATION
       // ==========================================
       let deferredPrompt;
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js');
-        });
+        window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js'); });
       }
       window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
@@ -62,36 +59,49 @@
       // ==========================================
       const scriptURL = 'https://script.google.com/macros/s/AKfycbzEpfF8pJVOPFhJF0DJIIojictD5N9KpmmRjx7tN_0AphPqMyLhAvNxfX62zQFsygup2g/exec';
 
-      // ==========================================
-      // FETCH DATA ON LOAD
-      // ==========================================
+      // Fetch Data
       window.onload = function() {
         fetch(scriptURL)
           .then(response => response.json())
           .then(data => {
-            document.querySelector('#whiteboard-text').setAttribute('value', data.Whiteboard || "");
-            document.querySelector('#note1-text').setAttribute('value', data.Note1 || "");
-            document.querySelector('#note2-text').setAttribute('value', data.Note2 || "");
-            document.querySelector('#note3-text').setAttribute('value', data.Note3 || "");
+            document.querySelector('#board-data').setAttribute('value', data.Whiteboard || "No Data");
+            document.querySelector('#note1-data').setAttribute('value', data.Note1 || "...");
+            document.querySelector('#note2-data').setAttribute('value', data.Note2 || "...");
+            document.querySelector('#note3-data').setAttribute('value', data.Note3 || "...");
           })
           .catch(error => console.error("Error fetching data:", error));
-          
-        // Audio Feedback
-        const hiroMarker = document.querySelector('#hiro-marker');
-        const kanjiMarker = document.querySelector('#kanji-marker');
-        const scanSound = document.querySelector('#scan-sound');
-
-        hiroMarker.addEventListener('markerFound', function() {
-          scanSound.components.sound.playSound();
-        });
-        kanjiMarker.addEventListener('markerFound', function() {
-          scanSound.components.sound.playSound();
-        });
       };
 
       // ==========================================
-      // INTERACTIVE COMPONENT
+      // INTERACTIVE COMPONENTS
       // ==========================================
+
+      // 1. Component to Open the HUD from the physical marker
+      AFRAME.registerComponent('open-hud', {
+        schema: { target: { type: 'string' } },
+        init: function () {
+          this.el.addEventListener('click', () => {
+            // Play sound
+            document.querySelector('#scan-sound').components.sound.playSound();
+            // Show the targeted HUD
+            document.querySelector(this.data.target).setAttribute('visible', 'true');
+            // Animate it in
+            document.querySelector(this.data.target).emit('pop-in');
+          });
+        }
+      });
+
+      // 2. Component to Close the HUD
+      AFRAME.registerComponent('close-hud', {
+        init: function () {
+          this.el.addEventListener('click', () => {
+            document.querySelector('#ui-whiteboard').setAttribute('visible', 'false');
+            document.querySelector('#ui-stickies').setAttribute('visible', 'false');
+          });
+        }
+      });
+
+      // 3. Component to interact with tasks (Mark as Done)
       AFRAME.registerComponent('mark-done', {
         init: function () {
           let isDone = false;
@@ -104,7 +114,7 @@
               isDone = true;
             } else {
               this.setAttribute('color', originalColor);
-              this.querySelector('a-text').setAttribute('value', 'Resetting...'); 
+              this.querySelector('a-text').setAttribute('value', 'Reset'); 
               isDone = false;
             }
           });
@@ -117,7 +127,8 @@
     
     <button id="install-btn" onclick="installApp()">⬇ Install AR App</button>
 
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3; sourceWidth:1280; sourceHeight:960; displayWidth: 1280; displayHeight: 960;" cursor="rayOrigin: mouse; fuse: false" raycaster="objects: .clickable">
+    <!-- Raycaster added so we can click 3D objects with our finger -->
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" cursor="rayOrigin: mouse; fuse: false" raycaster="objects: .clickable">
       
       <a-assets>
         <audio id="chime" src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3?filename=success-1-6297.mp3" preload="auto"></audio>
@@ -125,48 +136,69 @@
       <a-entity id="scan-sound" sound="src: #chime; volume: 1"></a-entity>
 
       <!-- ========================================== -->
-      <!-- FRONT WALL: Hiro Marker (Whiteboard)       -->
+      <!-- THE PHYSICAL MARKERS (WALL TRIGGERS)       -->
       <!-- ========================================== -->
-      <a-marker id="hiro-marker" preset="hiro" smooth="true" smoothCount="20" smoothTolerance="0.05" smoothThreshold="10">
-        <!-- Scaled down to 50% (scale="0.5 0.5 0.5") so it fits nicely on a phone screen without backing up -->
-        <a-entity scale="0.5 0.5 0.5" position="0 0.5 0">
-          <a-plane position="0 0 0" rotation="-90 0 0" width="4.2" height="2.2" color="#00ffff" material="opacity: 0.1; transparent: true"></a-plane>
-          <a-plane position="0 0.01 0" rotation="-90 0 0" width="4" height="2" color="#111111" material="opacity: 0.8; transparent: true">
-            <a-text value="MAIN TERMINAL" color="#00ffff" position="-1.8 0.8 0" width="4" font="exo2bold"></a-text>
-            <a-text id="whiteboard-text" value="Loading network data..." color="#ffffff" position="-1.8 0.3 0" width="3" line-height="50"></a-text>
-          </a-plane>
-        </a-entity>
+      
+      <!-- HIRO MARKER -->
+      <a-marker id="hiro-marker" preset="hiro" smooth="true">
+        <!-- Floating interactive button over the marker -->
+        <a-plane class="clickable" open-hud="target: #ui-whiteboard" position="0 0.5 0" rotation="-90 0 0" width="2" height="0.8" color="#00ffff" material="opacity: 0.8">
+          <a-text value="TAP TO OPEN\nWHITEBOARD" color="#000000" align="center" position="0 0 0.05" width="4" font="exo2bold"></a-text>
+        </a-plane>
+      </a-marker>
+
+      <!-- KANJI MARKER -->
+      <a-marker id="kanji-marker" preset="kanji" smooth="true">
+        <!-- Floating interactive button over the marker -->
+        <a-plane class="clickable" open-hud="target: #ui-stickies" position="0 0.5 0" rotation="-90 0 0" width="2" height="0.8" color="#ff00ff" material="opacity: 0.8">
+          <a-text value="TAP TO OPEN\nSTICKY NOTES" color="#000000" align="center" position="0 0 0.05" width="4" font="exo2bold"></a-text>
+        </a-plane>
       </a-marker>
 
       <!-- ========================================== -->
-      <!-- LEFT WALL: Kanji Marker (Sticky Notes)     -->
+      <!-- THE SCREEN-LOCKED HUD (NO FLICKERING)      -->
       <!-- ========================================== -->
-      <a-marker id="kanji-marker" preset="kanji" smooth="true" smoothCount="20" smoothTolerance="0.05" smoothThreshold="10">
-        <!-- Scaled down to 60% and lifted slightly -->
-        <a-entity scale="0.6 0.6 0.6" position="0 0.5 0">
+      
+      <a-entity camera look-controls>
+        <!-- Container pushed back so it fits nicely on screen -->
+        <a-entity id="hud-container" position="0 0 -5">
           
-          <!-- Note 1 (Yellow) -->
-          <a-plane position="-1.4 0 0" rotation="-90 0 0" width="1.2" height="1.2" color="#ffff00" material="opacity: 0.2; transparent: true"></a-plane>
-          <a-plane class="clickable" mark-done position="-1.4 0.01 0" rotation="-90 0 0" width="1.1" height="1.1" color="#222222" material="opacity: 0.9">
-            <a-text id="note1-text" value="..." color="#ffff00" align="center" position="0 0.1 0" width="3"></a-text>
-          </a-plane>
+          <!-- WHITEBOARD UI (Hidden until tapped) -->
+          <a-entity id="ui-whiteboard" visible="false" animation="property: scale; from: 0 0 0; to: 1 1 1; dur: 300; easing: easeOutQuad; startEvents: pop-in">
+            <!-- Data Board -->
+            <a-plane position="0 0.5 0" width="3.2" height="2" color="#111111" material="opacity: 0.95" border="color: #00ffff; width: 0.02">
+              <a-text value="MAIN TERMINAL" color="#00ffff" position="-1.4 0.7 0" width="3.5" font="exo2bold"></a-text>
+              <a-text id="board-data" value="Loading data..." color="#ffffff" position="-1.4 0.2 0" width="2.5" line-height="50"></a-text>
+            </a-plane>
+            <!-- Close Button -->
+            <a-plane class="clickable" close-hud position="0 -0.8 0.01" width="1.5" height="0.4" color="#ff0000" material="opacity: 0.8">
+              <a-text value="CLOSE" color="#ffffff" align="center" position="0 0 0.02" width="3" font="exo2bold"></a-text>
+            </a-plane>
+          </a-entity>
 
-          <!-- Note 2 (Pink) -->
-          <a-plane position="0 0 0" rotation="-90 0 0" width="1.2" height="1.2" color="#ff00ff" material="opacity: 0.2; transparent: true"></a-plane>
-          <a-plane class="clickable" mark-done position="0 0.01 0" rotation="-90 0 0" width="1.1" height="1.1" color="#222222" material="opacity: 0.9">
-            <a-text id="note2-text" value="..." color="#ff00ff" align="center" position="0 0.1 0" width="3"></a-text>
-          </a-plane>
-
-          <!-- Note 3 (Cyan) -->
-          <a-plane position="1.4 0 0" rotation="-90 0 0" width="1.2" height="1.2" color="#00ffff" material="opacity: 0.2; transparent: true"></a-plane>
-          <a-plane class="clickable" mark-done position="1.4 0.01 0" rotation="-90 0 0" width="1.1" height="1.1" color="#222222" material="opacity: 0.9">
-            <a-text id="note3-text" value="..." color="#00ffff" align="center" position="0 0.1 0" width="3"></a-text>
-          </a-plane>
+          <!-- STICKY NOTES UI (Hidden until tapped) -->
+          <a-entity id="ui-stickies" visible="false" animation="property: scale; from: 0 0 0; to: 1 1 1; dur: 300; easing: easeOutQuad; startEvents: pop-in">
+            <!-- Sticky Note 1 -->
+            <a-plane class="clickable" mark-done position="-1.2 0.5 0" width="1" height="1" color="#ffff00" material="opacity: 0.95">
+              <a-text id="note1-data" value="..." color="#000000" align="center" position="0 0 0.02" width="3"></a-text>
+            </a-plane>
+            <!-- Sticky Note 2 -->
+            <a-plane class="clickable" mark-done position="0 0.5 0" width="1" height="1" color="#ff00ff" material="opacity: 0.95">
+              <a-text id="note2-data" value="..." color="#000000" align="center" position="0 0 0.02" width="3"></a-text>
+            </a-plane>
+            <!-- Sticky Note 3 -->
+            <a-plane class="clickable" mark-done position="1.2 0.5 0" width="1" height="1" color="#00ffff" material="opacity: 0.95">
+              <a-text id="note3-data" value="..." color="#000000" align="center" position="0 0 0.02" width="3"></a-text>
+            </a-plane>
+            <!-- Close Button -->
+            <a-plane class="clickable" close-hud position="0 -0.4 0.01" width="1.5" height="0.4" color="#ff0000" material="opacity: 0.8">
+              <a-text value="CLOSE" color="#ffffff" align="center" position="0 0 0.02" width="3" font="exo2bold"></a-text>
+            </a-plane>
+          </a-entity>
 
         </a-entity>
-      </a-marker>
-
-      <a-entity camera></a-entity>
+      </a-entity>
+      
     </a-scene>
   </body>
 </html>
