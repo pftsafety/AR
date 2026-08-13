@@ -1,12 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Professional AR Workspace</title>
+
+  <title>AR Project Workspace</title>
+
+  <meta name="viewport"
+        content="width=device-width,
+        initial-scale=1.0,
+        maximum-scale=1.0,
+        user-scalable=no">
+
+  <meta name="theme-color" content="#0f172a">
 
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0f172a">
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
   <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
@@ -14,518 +20,670 @@
   <!-- AR.js -->
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
+
   <style>
 
     * {
       box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
     }
 
+    html,
     body {
       margin: 0;
-      overflow: hidden;
-      font-family: Arial, Helvetica, sans-serif;
-      background: #000;
-    }
-
-    /* =========================================================
-       MOBILE AR HUD
-       ========================================================= */
-
-    #ar-hud {
-      position: fixed;
-      top: 0;
-      left: 0;
+      padding: 0;
       width: 100%;
-      z-index: 9999;
-      pointer-events: none;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+      font-family: Arial, sans-serif;
     }
 
-    .hud-top {
-      margin: 14px;
-      padding: 12px 16px;
-      border-radius: 16px;
 
-      background: rgba(15, 23, 42, 0.88);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
+    /* =====================================================
+       TOP AR HEADER
+       ===================================================== */
+
+    #topBar {
+
+      position: fixed;
+
+      top: 12px;
+      left: 12px;
+      right: 12px;
+
+      height: 54px;
+
+      z-index: 9999;
+
+      display: flex;
+
+      align-items: center;
+
+      justify-content: space-between;
+
+      padding: 8px 14px;
 
       color: white;
 
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      background:
+        rgba(15,23,42,0.90);
 
-      box-shadow:
-        0 8px 30px rgba(0,0,0,0.25);
-
-      border: 1px solid rgba(255,255,255,0.12);
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .brand-icon {
-      width: 34px;
-      height: 34px;
-      border-radius: 10px;
-
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      background: linear-gradient(135deg, #2563eb, #06b6d4);
-
-      font-size: 17px;
-      font-weight: bold;
-    }
-
-    .brand-title {
-      font-size: 14px;
-      font-weight: 700;
-      letter-spacing: 0.4px;
-    }
-
-    .brand-subtitle {
-      font-size: 10px;
-      opacity: 0.65;
-      margin-top: 2px;
-    }
-
-    .status {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-
-      color: #86efac;
-    }
-
-    .status-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: #22c55e;
-
-      box-shadow: 0 0 10px #22c55e;
-    }
-
-    /* =========================================================
-       SCAN INSTRUCTION
-       ========================================================= */
-
-    #scan-message {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-
-      z-index: 9999;
-
-      width: calc(100% - 40px);
-      max-width: 420px;
-
-      padding: 13px 18px;
-
-      text-align: center;
+      border:
+        1px solid
+        rgba(255,255,255,0.15);
 
       border-radius: 14px;
 
-      color: white;
-      font-size: 12px;
-      font-weight: 600;
+      backdrop-filter: blur(12px);
 
-      background: rgba(15, 23, 42, 0.86);
+      pointer-events: none;
 
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-
-      border: 1px solid rgba(255,255,255,0.12);
-
-      box-shadow: 0 10px 35px rgba(0,0,0,0.3);
-
-      transition: all 0.3s ease;
     }
 
-    #scan-message.active {
-      background: rgba(22, 101, 52, 0.88);
-    }
 
-    /* =========================================================
-       LOADING
-       ========================================================= */
-
-    #loading {
-      position: fixed;
-      inset: 0;
-
-      z-index: 10000;
+    .brand {
 
       display: flex;
+
+      align-items: center;
+
+      gap: 10px;
+
+    }
+
+
+    .brandIcon {
+
+      width: 34px;
+      height: 34px;
+
+      border-radius: 9px;
+
+      display: flex;
+
+      align-items: center;
+      justify-content: center;
+
+      font-size: 13px;
+
+      font-weight: bold;
+
+      background:
+        linear-gradient(
+          135deg,
+          #2563eb,
+          #06b6d4
+        );
+
+    }
+
+
+    .brandTitle {
+
+      font-size: 13px;
+
+      font-weight: 700;
+
+      letter-spacing: .4px;
+
+    }
+
+
+    .brandSub {
+
+      font-size: 9px;
+
+      opacity: .55;
+
+      margin-top: 2px;
+
+    }
+
+
+    .online {
+
+      display: flex;
+
+      align-items: center;
+
+      gap: 6px;
+
+      font-size: 9px;
+
+      font-weight: bold;
+
+      color: #86efac;
+
+    }
+
+
+    .onlineDot {
+
+      width: 7px;
+      height: 7px;
+
+      border-radius: 50%;
+
+      background: #22c55e;
+
+      box-shadow:
+        0 0 8px
+        #22c55e;
+
+    }
+
+
+    /* =====================================================
+       BOTTOM MESSAGE
+       ===================================================== */
+
+    #message {
+
+      position: fixed;
+
+      left: 50%;
+
+      bottom: 18px;
+
+      transform:
+        translateX(-50%);
+
+      width: calc(100% - 40px);
+
+      max-width: 420px;
+
+      z-index: 9999;
+
+      padding: 12px 16px;
+
+      text-align: center;
+
+      color: white;
+
+      font-size: 11px;
+
+      font-weight: 600;
+
+      background:
+        rgba(15,23,42,.88);
+
+      border:
+        1px solid
+        rgba(255,255,255,.12);
+
+      border-radius: 13px;
+
+      backdrop-filter:
+        blur(12px);
+
+      pointer-events: none;
+
+    }
+
+
+    #message.active {
+
+      background:
+        rgba(21,128,61,.90);
+
+    }
+
+
+    /* =====================================================
+       LOADING
+       ===================================================== */
+
+    #loading {
+
+      position: fixed;
+
+      inset: 0;
+
+      z-index: 10001;
+
+      display: flex;
+
       flex-direction: column;
 
       align-items: center;
+
       justify-content: center;
 
       background: #0f172a;
 
       color: white;
+
+      transition:
+        opacity .35s ease;
+
     }
 
-    .loader {
-      width: 42px;
-      height: 42px;
 
-      border: 3px solid rgba(255,255,255,0.15);
-      border-top-color: #38bdf8;
+    .spinner {
+
+      width: 38px;
+      height: 38px;
+
+      border:
+        3px solid
+        rgba(255,255,255,.15);
+
+      border-top-color:
+        #38bdf8;
 
       border-radius: 50%;
 
-      animation: spin 0.8s linear infinite;
+      animation:
+        spin .8s linear infinite;
 
-      margin-bottom: 16px;
+      margin-bottom: 15px;
+
     }
 
-    .loading-title {
-      font-size: 15px;
-      font-weight: 700;
-    }
-
-    .loading-subtitle {
-      margin-top: 6px;
-      font-size: 11px;
-      opacity: 0.55;
-    }
 
     @keyframes spin {
+
       to {
         transform: rotate(360deg);
       }
+
+    }
+
+
+    .loadingTitle {
+
+      font-size: 14px;
+
+      font-weight: 700;
+
+    }
+
+
+    .loadingSub {
+
+      font-size: 10px;
+
+      opacity: .55;
+
+      margin-top: 5px;
+
     }
 
   </style>
 
+
   <script>
 
-    /* =========================================================
-       SERVICE WORKER
-       ========================================================= */
-
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker
-          .register('./sw.js')
-          .catch(err => console.warn("Service Worker:", err));
-      });
-    }
-
-    /* =========================================================
+    /* =====================================================
        GOOGLE APPS SCRIPT
-       ========================================================= */
+       ===================================================== */
 
     const scriptURL =
       'https://script.google.com/macros/s/AKfycbzEpfF8pJVOPFhJF0DJIIojictD5N9KpmmRjx7tN_0AphPqMyLhAvNxfX62zQFsygup2g/exec';
 
 
-    /* =========================================================
-       MARK-DONE COMPONENT
-       ========================================================= */
+    /* =====================================================
+       MARK DONE
+       ===================================================== */
 
-    AFRAME.registerComponent('mark-done', {
+    AFRAME.registerComponent(
+      'mark-done',
+      {
 
-      init: function () {
+        init: function () {
 
-        let isDone = false;
+          let completed = false;
 
-        const originalColor =
-          this.el.getAttribute('color');
+          const originalColor =
+            this.el.getAttribute('color');
 
-        const text =
-          this.el.querySelector('.note-text');
+          const text =
+            this.el.querySelector('.taskText');
 
-        const badge =
-          this.el.querySelector('.note-status');
+          const status =
+            this.el.querySelector('.taskStatus');
 
-        this.el.addEventListener('click', () => {
 
-          if (!isDone) {
+          this.el.addEventListener(
+            'click',
+            () => {
 
-            this.el.setAttribute(
-              'color',
-              '#dcfce7'
-            );
+              completed = !completed;
 
-            if (text) {
-              text.setAttribute(
-                'color',
-                '#166534'
-              );
+
+              if (completed) {
+
+                this.el.setAttribute(
+                  'color',
+                  '#dcfce7'
+                );
+
+                if (text) {
+
+                  text.setAttribute(
+                    'color',
+                    '#166534'
+                  );
+
+                }
+
+                if (status) {
+
+                  status.setAttribute(
+                    'value',
+                    '✓ COMPLETED'
+                  );
+
+                  status.setAttribute(
+                    'color',
+                    '#15803d'
+                  );
+
+                }
+
+              }
+
+              else {
+
+                this.el.setAttribute(
+                  'color',
+                  originalColor
+                );
+
+                if (text) {
+
+                  text.setAttribute(
+                    'color',
+                    '#1e293b'
+                  );
+
+                }
+
+                if (status) {
+
+                  status.setAttribute(
+                    'value',
+                    'OPEN'
+                  );
+
+                  status.setAttribute(
+                    'color',
+                    '#64748b'
+                  );
+
+                }
+
+              }
+
             }
 
-            if (badge) {
-              badge.setAttribute(
-                'value',
-                '✓ COMPLETED'
-              );
+          );
 
-              badge.setAttribute(
-                'color',
-                '#15803d'
-              );
-            }
-
-            isDone = true;
-
-          } else {
-
-            this.el.setAttribute(
-              'color',
-              originalColor
-            );
-
-            if (text) {
-              text.setAttribute(
-                'color',
-                '#1e293b'
-              );
-            }
-
-            if (badge) {
-              badge.setAttribute(
-                'value',
-                'OPEN'
-              );
-
-              badge.setAttribute(
-                'color',
-                '#64748b'
-              );
-            }
-
-            isDone = false;
-          }
-
-        });
+        }
 
       }
-
-    });
-
-
-    /* =========================================================
-       DATA LOADING
-       ========================================================= */
-
-    window.addEventListener('load', () => {
-
-      const loading =
-        document.getElementById('loading');
-
-      const scanMessage =
-        document.getElementById('scan-message');
-
-      fetch(scriptURL)
-
-        .then(response => {
-
-          if (!response.ok) {
-            throw new Error(
-              'Unable to connect to data source'
-            );
-          }
-
-          return response.json();
-
-        })
-
-        .then(data => {
-
-          /* Whiteboard */
-
-          document
-            .querySelector('#board-data')
-            .setAttribute(
-              'value',
-              data.Whiteboard ||
-              'No active project updates.'
-            );
+    );
 
 
-          /* Notes */
+    /* =====================================================
+       DATA LOAD
+       ===================================================== */
 
-          document
-            .querySelector('#note1-data')
-            .setAttribute(
-              'value',
-              data.Note1 || 'No task available'
-            );
-
-          document
-            .querySelector('#note2-data')
-            .setAttribute(
-              'value',
-              data.Note2 || 'No task available'
-            );
-
-          document
-            .querySelector('#note3-data')
-            .setAttribute(
-              'value',
-              data.Note3 || 'No task available'
-            );
+    window.addEventListener(
+      'load',
+      function () {
 
 
-          /* Hide loader */
+        /*
+         * IMPORTANT:
+         * AR is allowed to start independently.
+         */
 
-          setTimeout(() => {
+
+        setTimeout(
+          function () {
+
+            const loading =
+              document.getElementById(
+                'loading'
+              );
 
             loading.style.opacity = '0';
 
-            setTimeout(() => {
-              loading.style.display = 'none';
-            }, 300);
+            setTimeout(
+              function () {
 
-          }, 400);
+                loading.style.display =
+                  'none';
 
+              },
+              400
+            );
 
-          /* Scan message */
-
-          scanMessage.innerText =
-            'SCAN A MARKER TO VIEW PROJECT INFORMATION';
-
-
-          /* Marker audio */
-
-          const hiroMarker =
-            document.querySelector('#hiro-marker');
-
-          const kanjiMarker =
-            document.querySelector('#kanji-marker');
-
-          const scanSound =
-            document.querySelector('#scan-sound');
+          },
+          1200
+        );
 
 
-          const playSound = () => {
+        /* =================================================
+           LOAD GOOGLE SHEET
+           ================================================= */
 
-            try {
+        fetch(scriptURL)
 
-              if (
-                scanSound &&
-                scanSound.components &&
-                scanSound.components.sound
-              ) {
-                scanSound
-                  .components
-                  .sound
-                  .playSound();
+          .then(
+            response => response.json()
+          )
+
+          .then(
+            data => {
+
+              console.log(
+                'AR DATA:',
+                data
+              );
+
+
+              const board =
+                document.getElementById(
+                  'board-data'
+                );
+
+              const note1 =
+                document.getElementById(
+                  'note1-data'
+                );
+
+              const note2 =
+                document.getElementById(
+                  'note2-data'
+                );
+
+              const note3 =
+                document.getElementById(
+                  'note3-data'
+                );
+
+
+              if (board) {
+
+                board.setAttribute(
+                  'value',
+                  data.Whiteboard ||
+                  'No active project information available.'
+                );
+
               }
 
-            } catch (e) {
-              console.warn(
-                'Audio playback blocked'
-              );
+
+              if (note1) {
+
+                note1.setAttribute(
+                  'value',
+                  data.Note1 ||
+                  'No task available'
+                );
+
+              }
+
+
+              if (note2) {
+
+                note2.setAttribute(
+                  'value',
+                  data.Note2 ||
+                  'No task available'
+                );
+
+              }
+
+
+              if (note3) {
+
+                note3.setAttribute(
+                  'value',
+                  data.Note3 ||
+                  'No task available'
+                );
+
+              }
+
             }
+          )
 
-          };
+          .catch(
+            error => {
 
-
-          hiroMarker.addEventListener(
-            'markerFound',
-            () => {
-
-              playSound();
-
-              scanMessage.innerText =
-                '✓ EXECUTIVE SUMMARY DETECTED';
-
-              scanMessage.classList.add(
-                'active'
+              console.error(
+                'Google Sheet Error:',
+                error
               );
+
+
+              /*
+               * IMPORTANT:
+               * AR objects remain visible even
+               * when the backend is unavailable.
+               */
+
+              document
+                .getElementById('board-data')
+                .setAttribute(
+                  'value',
+                  'Project information unavailable'
+                );
+
+
+              document
+                .getElementById('note1-data')
+                .setAttribute(
+                  'value',
+                  'Task data unavailable'
+                );
+
+
+              document
+                .getElementById('note2-data')
+                .setAttribute(
+                  'value',
+                  'Task data unavailable'
+                );
+
+
+              document
+                .getElementById('note3-data')
+                .setAttribute(
+                  'value',
+                  'Task data unavailable'
+                );
 
             }
           );
 
 
-          hiroMarker.addEventListener(
-            'markerLost',
-            () => {
+        /* =================================================
+           MARKER EVENTS
+           ================================================= */
 
-              scanMessage.innerText =
-                'SCAN A MARKER TO VIEW PROJECT INFORMATION';
+        const hiro =
+          document.getElementById(
+            'hiro-marker'
+          );
 
-              scanMessage.classList.remove(
-                'active'
-              );
+        const kanji =
+          document.getElementById(
+            'kanji-marker'
+          );
 
-            }
+        const message =
+          document.getElementById(
+            'message'
           );
 
 
-          kanjiMarker.addEventListener(
-            'markerFound',
-            () => {
+        hiro.addEventListener(
+          'markerFound',
+          function () {
 
-              playSound();
+            message.innerText =
+              '✓ EXECUTIVE PROJECT BOARD DETECTED';
 
-              scanMessage.innerText =
-                '✓ TASK BOARD DETECTED';
+            message.classList.add(
+              'active'
+            );
 
-              scanMessage.classList.add(
-                'active'
-              );
-
-            }
-          );
+          }
+        );
 
 
-          kanjiMarker.addEventListener(
-            'markerLost',
-            () => {
+        hiro.addEventListener(
+          'markerLost',
+          function () {
 
-              scanMessage.innerText =
-                'SCAN A MARKER TO VIEW PROJECT INFORMATION';
+            message.innerText =
+              'SCAN THE HIRO MARKER FOR PROJECT SUMMARY';
 
-              scanMessage.classList.remove(
-                'active'
-              );
+            message.classList.remove(
+              'active'
+            );
 
-            }
-          );
+          }
+        );
 
-        })
 
-        .catch(error => {
+        kanji.addEventListener(
+          'markerFound',
+          function () {
 
-          console.error(
-            'Error loading data:',
-            error
-          );
+            message.innerText =
+              '✓ ACTIVE TASK BOARD DETECTED';
 
-          loading.innerHTML = `
-            <div style="
-              font-size:38px;
-              margin-bottom:16px;
-            ">⚠</div>
+            message.classList.add(
+              'active'
+            );
 
-            <div class="loading-title">
-              Unable to Load Data
-            </div>
+          }
+        );
 
-            <div class="loading-subtitle">
-              Please check your internet connection
-            </div>
-          `;
 
-        });
+        kanji.addEventListener(
+          'markerLost',
+          function () {
 
-    });
+            message.innerText =
+              'SCAN THE KANJI MARKER FOR ACTIVE TASKS';
+
+            message.classList.remove(
+              'active'
+            );
+
+          }
+        );
+
+
+      }
+
+    );
 
   </script>
 
@@ -535,110 +693,113 @@
 <body>
 
 
-  <!-- =========================================================
-       LOADING SCREEN
-       ========================================================= -->
+  <!-- =====================================================
+       LOADING
+       ===================================================== -->
 
   <div id="loading">
 
-    <div class="loader"></div>
+    <div class="spinner"></div>
 
-    <div class="loading-title">
+    <div class="loadingTitle">
       Initializing AR Workspace
     </div>
 
-    <div class="loading-subtitle">
-      Connecting to project data...
+    <div class="loadingSub">
+      Preparing camera and AR markers
     </div>
 
   </div>
 
 
-  <!-- =========================================================
-       AR HUD
-       ========================================================= -->
+  <!-- =====================================================
+       TOP BAR
+       ===================================================== -->
 
-  <div id="ar-hud">
+  <div id="topBar">
 
-    <div class="hud-top">
+    <div class="brand">
 
-      <div class="brand">
+      <div class="brandIcon">
+        AR
+      </div>
 
-        <div class="brand-icon">
-          AR
+      <div>
+
+        <div class="brandTitle">
+          PROJECT AR WORKSPACE
         </div>
 
-        <div>
-
-          <div class="brand-title">
-            PROJECT AR WORKSPACE
-          </div>
-
-          <div class="brand-subtitle">
-            REAL-TIME PROJECT VISUALIZATION
-          </div>
-
+        <div class="brandSub">
+          REAL-TIME PROJECT VISUALIZATION
         </div>
 
       </div>
 
+    </div>
 
-      <div class="status">
 
-        <span class="status-dot"></span>
+    <div class="online">
 
-        ONLINE
+      <span class="onlineDot"></span>
 
-      </div>
+      ONLINE
 
     </div>
 
   </div>
 
 
-  <!-- =========================================================
-       SCAN MESSAGE
-       ========================================================= -->
+  <!-- =====================================================
+       BOTTOM MESSAGE
+       ===================================================== -->
 
-  <div id="scan-message">
-    INITIALIZING CAMERA...
+  <div id="message">
+
+    SCAN A MARKER TO VIEW PROJECT INFORMATION
+
   </div>
 
 
-  <!-- =========================================================
+  <!-- =====================================================
        AR SCENE
-       ========================================================= -->
+       ===================================================== -->
 
   <a-scene
 
     embedded
 
+    renderer="
+      antialias:true;
+      alpha:true;
+    "
+
     arjs="
-      sourceType: webcam;
-      debugUIEnabled: false;
-      sourceWidth: 640;
-      sourceHeight: 480;
-      displayWidth: 640;
-      displayHeight: 480;
-    "
-
-    cursor="
-      rayOrigin: mouse;
-      fuse: false;
-    "
-
-    raycaster="
-      objects: .clickable;
+      sourceType:webcam;
+      debugUIEnabled:false;
+      sourceWidth:640;
+      sourceHeight:480;
+      displayWidth:640;
+      displayHeight:480;
     "
 
     vr-mode-ui="
-      enabled: false;
+      enabled:false
+    "
+
+    cursor="
+      rayOrigin:mouse;
+      fuse:false;
+    "
+
+    raycaster="
+      objects:.clickable;
     ">
 
 
-    <!-- =====================================================
-         ASSETS
-         ===================================================== -->
+    <!-- ===================================================
+         AUDIO
+         =================================================== -->
 
     <a-assets>
 
@@ -651,19 +812,10 @@
     </a-assets>
 
 
-    <a-entity
-      id="scan-sound"
-      sound="
-        src: #chime;
-        volume: 0.7;
-      ">
-    </a-entity>
-
-
-    <!-- =====================================================
-         EXECUTIVE SUMMARY
+    <!-- ===================================================
          HIRO MARKER
-         ===================================================== -->
+         EXECUTIVE BOARD
+         =================================================== -->
 
     <a-marker
 
@@ -680,223 +832,213 @@
       smoothThreshold="5">
 
 
-      <a-entity
-        scale="0.68 0.68 0.68"
-        position="0 0 0.2">
+      <!-- DARK OUTER FRAME -->
+
+      <a-plane
+
+        width="4.5"
+
+        height="3.5"
+
+        color="#0f172a"
+
+        position="
+          0
+          0
+          0.00">
+
+      </a-plane>
 
 
-        <!-- OUTER SHADOW -->
+      <!-- WHITE BOARD -->
+
+      <a-plane
+
+        width="4.25"
+
+        height="3.25"
+
+        color="#ffffff"
+
+        position="
+          0
+          0
+          0.03">
+
+
+        <!-- HEADER -->
 
         <a-plane
 
-          width="4.35"
+          width="4.25"
 
-          height="3.35"
+          height=".60"
 
-          color="#000000"
-
-          material="
-            opacity:0.25;
-            transparent:true;
-          "
+          color="#f8fafc"
 
           position="
-            0.08
-            -0.08
-            -0.02
-          ">
+            0
+            1.325
+            0.03">
 
         </a-plane>
 
 
-        <!-- EXECUTIVE FRAME -->
+        <!-- BLUE STRIPE -->
 
         <a-plane
 
-          width="4.3"
+          width="4.25"
 
-          height="3.3"
+          height=".045"
+
+          color="#2563eb"
+
+          position="
+            0
+            1.02
+            0.04">
+
+        </a-plane>
+
+
+        <!-- TITLE -->
+
+        <a-text
+
+          value="PROJECT EXECUTIVE SUMMARY"
 
           color="#0f172a"
 
-          position="0 0 0">
+          position="
+            -1.85
+            1.22
+            0.05"
 
-        </a-plane>
+          width="3.7"
+
+          font="roboto"
+
+          fontWeight="bold">
+
+        </a-text>
 
 
-        <!-- WHITE BOARD -->
+        <!-- SUBTITLE -->
+
+        <a-text
+
+          value="LIVE PROJECT STATUS"
+
+          color="#2563eb"
+
+          position="
+            -1.85
+            1.04
+            0.05"
+
+          width="2.5"
+
+          font="roboto"
+
+          fontWeight="bold">
+
+        </a-text>
+
+
+        <!-- TEXT BACKGROUND -->
 
         <a-plane
 
-          width="4.08"
+          width="3.75"
 
-          height="3.08"
+          height="1.85"
 
-          color="#ffffff"
+          color="#f8fafc"
 
-          position="0 0 0.02">
-
-
-          <!-- TOP HEADER -->
-
-          <a-plane
-
-            width="4.08"
-
-            height="0.55"
-
-            color="#f8fafc"
-
-            position="
-              0
-              1.265
-              0.01">
-
-          </a-plane>
-
-
-          <!-- BLUE ACCENT -->
-
-          <a-plane
-
-            width="4.08"
-
-            height="0.035"
-
-            color="#2563eb"
-
-            position="
-              0
-              0.985
-              0.015">
-
-          </a-plane>
-
-
-          <!-- TITLE -->
-
-          <a-text
-
-            value="PROJECT EXECUTIVE SUMMARY"
-
-            color="#0f172a"
-
-            position="
-              -1.78
-              1.20
-              0.02"
-
-            width="3.4"
-
-            font="roboto"
-
-            fontWeight="bold">
-
-          </a-text>
-
-
-          <!-- STATUS -->
-
-          <a-text
-
-            value="LIVE PROJECT STATUS"
-
-            color="#2563eb"
-
-            position="
-              -1.78
-              1.02
-              0.02"
-
-            width="2.5"
-
-            font="roboto"
-
-            fontWeight="bold">
-
-          </a-text>
-
-
-          <!-- SUMMARY -->
-
-          <a-text
-
-            id="board-data"
-
-            value="Loading project information..."
-
-            color="#334155"
-
-            position="
-              -1.78
-              0.82
-              0.02"
-
-            width="3.55"
-
-            wrap-count="46"
-
-            anchor="left"
-
-            baseline="top"
-
-            line-height="42"
-
-            font="roboto">
-
-          </a-text>
-
-
-          <!-- FOOTER LINE -->
-
-          <a-plane
-
-            width="3.55"
-
-            height="0.012"
-
-            color="#e2e8f0"
-
-            position="
-              0
-              -1.22
-              0.02">
-
-          </a-plane>
-
-
-          <!-- FOOTER -->
-
-          <a-text
-
-            value="HLL • PROJECT MANAGEMENT"
-
-            color="#94a3b8"
-
-            position="
-              -1.78
-              -1.38
-              0.02"
-
-            width="2.5"
-
-            font="roboto">
-
-          </a-text>
-
+          position="
+            0
+            -0.05
+            0.035">
 
         </a-plane>
 
 
-      </a-entity>
+        <!-- MAIN RESULT -->
+
+        <a-text
+
+          id="board-data"
+
+          value="Loading project information..."
+
+          color="#1e293b"
+
+          position="
+            -1.75
+            0.75
+            0.06"
+
+          width="3.5"
+
+          wrap-count="43"
+
+          anchor="left"
+
+          baseline="top"
+
+          line-height="38"
+
+          font="roboto">
+
+        </a-text>
+
+
+        <!-- FOOTER -->
+
+        <a-plane
+
+          width="3.75"
+
+          height=".015"
+
+          color="#e2e8f0"
+
+          position="
+            0
+            -1.15
+            0.05">
+
+        </a-plane>
+
+
+        <a-text
+
+          value="HLL • PROJECT MANAGEMENT"
+
+          color="#94a3b8"
+
+          position="
+            -1.75
+            -1.35
+            0.06"
+
+          width="2.7"
+
+          font="roboto">
+
+        </a-text>
+
+
+      </a-plane>
 
     </a-marker>
 
 
-    <!-- =====================================================
-         TASK BOARD
+    <!-- ===================================================
          KANJI MARKER
-         ===================================================== -->
+         TASK BOARD
+         =================================================== -->
 
     <a-marker
 
@@ -913,29 +1055,161 @@
       smoothThreshold="5">
 
 
-      <a-entity
+      <!-- BOARD BACKGROUND -->
 
-        scale="0.82 0.82 0.82"
+      <a-plane
 
-        position="0 0 0.2">
+        width="4.7"
+
+        height="3.5"
+
+        color="#0f172a"
+
+        position="
+          0
+          0
+          0">
+
+      </a-plane>
 
 
-        <!-- BOARD TITLE -->
+      <!-- BOARD HEADER -->
 
-        <a-text
+      <a-text
 
-          value="ACTIVE TASK BOARD"
+        value="ACTIVE TASK BOARD"
 
-          color="#ffffff"
+        color="#ffffff"
+
+        align="center"
+
+        position="
+          0
+          1.32
+          0.05"
+
+        width="4"
+
+        font="roboto"
+
+        fontWeight="bold">
+
+      </a-text>
+
+
+      <a-text
+
+        value="TAP TASK CARD TO UPDATE STATUS"
+
+        color="#94a3b8"
+
+        align="center"
+
+        position="
+          0
+          1.08
+          0.05"
+
+        width="3"
+
+        font="roboto">
+
+      </a-text>
+
+
+      <!-- =================================================
+           TASK 1
+           ================================================= -->
+
+      <a-plane
+
+        class="clickable"
+
+        mark-done
+
+        width="1.25"
+
+        height="1.45"
+
+        color="#fef3c7"
+
+        position="
+          -1.45
+          0
+          0.06"
+
+        rotation="
+          0
+          0
+          2">
+
+
+        <!-- TOP STRIPE -->
+
+        <a-plane
+
+          width="1.25"
+
+          height=".13"
+
+          color="#f59e0b"
 
           position="
             0
-            1.25
-            0.04"
+            .66
+            .03">
+
+        </a-plane>
+
+
+        <!-- TASK -->
+
+        <a-text
+
+          id="note1-data"
+
+          class="taskText"
+
+          value="Loading..."
+
+          color="#1e293b"
 
           align="center"
 
-          width="4.2"
+          position="
+            0
+            .02
+            .04"
+
+          width="2.25"
+
+          wrap-count="20"
+
+          font="roboto"
+
+          baseline="center">
+
+        </a-text>
+
+
+        <!-- STATUS -->
+
+        <a-text
+
+          class="taskStatus"
+
+          value="OPEN"
+
+          color="#64748b"
+
+          align="center"
+
+          position="
+            0
+            -.60
+            .04"
+
+          width="1.2"
 
           font="roboto"
 
@@ -943,386 +1217,202 @@
 
         </a-text>
 
+      </a-plane>
 
-        <a-text
 
-          value="TAP A TASK TO MARK IT COMPLETED"
+      <!-- =================================================
+           TASK 2
+           ================================================= -->
 
-          color="#cbd5e1"
+      <a-plane
+
+        class="clickable"
+
+        mark-done
+
+        width="1.25"
+
+        height="1.45"
+
+        color="#fce7f3"
+
+        position="
+          0
+          0
+          0.06"
+
+        rotation="
+          0
+          0
+          -1.5">
+
+
+        <a-plane
+
+          width="1.25"
+
+          height=".13"
+
+          color="#ec4899"
 
           position="
             0
-            1.02
-            0.04"
+            .66
+            .03">
+
+        </a-plane>
+
+
+        <a-text
+
+          id="note2-data"
+
+          class="taskText"
+
+          value="Loading..."
+
+          color="#1e293b"
 
           align="center"
 
-          width="3.2"
+          position="
+            0
+            .02
+            .04"
 
-          font="roboto">
+          width="2.25"
+
+          wrap-count="20"
+
+          font="roboto"
+
+          baseline="center">
 
         </a-text>
 
 
-        <!-- =================================================
-             NOTE 1
-             ================================================= -->
+        <a-text
 
-        <a-entity
-          position="-1.45 0 0">
+          class="taskStatus"
 
-          <!-- shadow -->
+          value="OPEN"
 
-          <a-plane
+          color="#64748b"
 
-            width="1.38"
+          align="center"
 
-            height="1.38"
+          position="
+            0
+            -.60
+            .04"
 
-            color="#000000"
+          width="1.2"
 
-            material="
-              opacity:0.20;
-              transparent:true;
-            "
+          font="roboto"
 
-            position="
-              0.06
-              -0.06
-              -0.02">
+          fontWeight="bold">
 
-          </a-plane>
+        </a-text>
 
+      </a-plane>
 
-          <!-- card -->
 
-          <a-plane
+      <!-- =================================================
+           TASK 3
+           ================================================= -->
 
-            class="clickable"
+      <a-plane
 
-            mark-done
+        class="clickable"
 
-            width="1.35"
+        mark-done
 
-            height="1.35"
+        width="1.25"
 
-            color="#fef3c7"
+        height="1.45"
 
-            rotation="0 0 2">
+        color="#e0f2fe"
 
-            <!-- top bar -->
+        position="
+          1.45
+          0
+          0.06"
 
-            <a-plane
+        rotation="
+          0
+          0
+          1">
 
-              width="1.35"
 
-              height="0.16"
+        <a-plane
 
-              color="#f59e0b"
+          width="1.25"
 
-              position="
-                0
-                0.595
-                0.01">
+          height=".13"
 
-            </a-plane>
+          color="#0284c7"
 
+          position="
+            0
+            .66
+            .03">
 
-            <!-- task -->
+        </a-plane>
 
-            <a-text
 
-              id="note1-data"
+        <a-text
 
-              class="note-text"
+          id="note3-data"
 
-              value="Loading..."
+          class="taskText"
 
-              color="#1e293b"
+          value="Loading..."
 
-              align="center"
+          color="#1e293b"
 
-              position="
-                0
-                0.02
-                0.03"
+          align="center"
 
-              width="2.35"
+          position="
+            0
+            .02
+            .04"
 
-              wrap-count="22"
+          width="2.25"
 
-              font="roboto"
+          wrap-count="20"
 
-              baseline="center">
+          font="roboto"
 
-            </a-text>
+          baseline="center">
 
+        </a-text>
 
-            <!-- status -->
 
-            <a-text
+        <a-text
 
-              class="note-status"
+          class="taskStatus"
 
-              value="OPEN"
+          value="OPEN"
 
-              color="#64748b"
+          color="#64748b"
 
-              align="center"
+          align="center"
 
-              position="
-                0
-                -0.53
-                0.03"
+          position="
+            0
+            -.60
+            .04"
 
-              width="1.3"
+          width="1.2"
 
-              font="roboto"
+          font="roboto"
 
-              fontWeight="bold">
+          fontWeight="bold">
 
-            </a-text>
+        </a-text>
 
+      </a-plane>
 
-          </a-plane>
-
-        </a-entity>
-
-
-        <!-- =================================================
-             NOTE 2
-             ================================================= -->
-
-        <a-entity
-          position="0 0 0">
-
-          <a-plane
-
-            width="1.38"
-
-            height="1.38"
-
-            color="#000000"
-
-            material="
-              opacity:0.20;
-              transparent:true;
-            "
-
-            position="
-              0.06
-              -0.06
-              -0.02">
-
-          </a-plane>
-
-
-          <a-plane
-
-            class="clickable"
-
-            mark-done
-
-            width="1.35"
-
-            height="1.35"
-
-            color="#fce7f3"
-
-            rotation="0 0 -1.5">
-
-
-            <a-plane
-
-              width="1.35"
-
-              height="0.16"
-
-              color="#ec4899"
-
-              position="
-                0
-                0.595
-                0.01">
-
-            </a-plane>
-
-
-            <a-text
-
-              id="note2-data"
-
-              class="note-text"
-
-              value="Loading..."
-
-              color="#1e293b"
-
-              align="center"
-
-              position="
-                0
-                0.02
-                0.03"
-
-              width="2.35"
-
-              wrap-count="22"
-
-              font="roboto"
-
-              baseline="center">
-
-            </a-text>
-
-
-            <a-text
-
-              class="note-status"
-
-              value="OPEN"
-
-              color="#64748b"
-
-              align="center"
-
-              position="
-                0
-                -0.53
-                0.03"
-
-              width="1.3"
-
-              font="roboto"
-
-              fontWeight="bold">
-
-            </a-text>
-
-
-          </a-plane>
-
-        </a-entity>
-
-
-        <!-- =================================================
-             NOTE 3
-             ================================================= -->
-
-        <a-entity
-          position="1.45 0 0">
-
-
-          <a-plane
-
-            width="1.38"
-
-            height="1.38"
-
-            color="#000000"
-
-            material="
-              opacity:0.20;
-              transparent:true;
-            "
-
-            position="
-              0.06
-              -0.06
-              -0.02">
-
-          </a-plane>
-
-
-          <a-plane
-
-            class="clickable"
-
-            mark-done
-
-            width="1.35"
-
-            height="1.35"
-
-            color="#e0f2fe"
-
-            rotation="0 0 1">
-
-
-            <a-plane
-
-              width="1.35"
-
-              height="0.16"
-
-              color="#0284c7"
-
-              position="
-                0
-                0.595
-                0.01">
-
-            </a-plane>
-
-
-            <a-text
-
-              id="note3-data"
-
-              class="note-text"
-
-              value="Loading..."
-
-              color="#1e293b"
-
-              align="center"
-
-              position="
-                0
-                0.02
-                0.03"
-
-              width="2.35"
-
-              wrap-count="22"
-
-              font="roboto"
-
-              baseline="center">
-
-            </a-text>
-
-
-            <a-text
-
-              class="note-status"
-
-              value="OPEN"
-
-              color="#64748b"
-
-              align="center"
-
-              position="
-                0
-                -0.53
-                0.03"
-
-              width="1.3"
-
-              font="roboto"
-
-              fontWeight="bold">
-
-            </a-text>
-
-
-          </a-plane>
-
-        </a-entity>
-
-
-      </a-entity>
 
     </a-marker>
 
@@ -1330,6 +1420,7 @@
     <!-- CAMERA -->
 
     <a-entity camera></a-entity>
+
 
   </a-scene>
 
