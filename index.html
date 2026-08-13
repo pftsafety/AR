@@ -1,1428 +1,524 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
+<title>AR Project Workspace</title>
 
-  <title>AR Project Workspace</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0f172a">
 
-  <meta name="viewport"
-        content="width=device-width,
-        initial-scale=1.0,
-        maximum-scale=1.0,
-        user-scalable=no">
+<link rel="manifest" href="manifest.json">
 
-  <meta name="theme-color" content="#0f172a">
+<script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+<script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
-  <link rel="manifest" href="manifest.json">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;font-family:Arial,sans-serif}
 
-  <!-- A-Frame -->
-  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+#topBar{
+position:fixed;top:10px;left:10px;right:10px;height:50px;z-index:9999;
+display:flex;align-items:center;justify-content:space-between;padding:7px 12px;
+color:#fff;background:rgba(15,23,42,.90);border:1px solid rgba(255,255,255,.15);
+border-radius:12px;backdrop-filter:blur(10px);pointer-events:none
+}
 
-  <!-- AR.js -->
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+.brand{display:flex;align-items:center;gap:9px}
+.brandIcon{
+width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+font-size:12px;font-weight:700;background:linear-gradient(135deg,#2563eb,#06b6d4)
+}
+.brandTitle{font-size:12px;font-weight:700;letter-spacing:.3px}
+.brandSub{font-size:8px;opacity:.55;margin-top:2px}
 
+.online{
+display:flex;align-items:center;gap:5px;font-size:8px;font-weight:700;color:#86efac
+}
+.onlineDot{
+width:6px;height:6px;border-radius:50%;background:#22c55e;box-shadow:0 0 7px #22c55e
+}
 
-  <style>
+#message{
+position:fixed;left:50%;bottom:14px;transform:translateX(-50%);
+width:calc(100% - 30px);max-width:400px;z-index:9999;padding:10px 13px;
+text-align:center;color:#fff;font-size:10px;font-weight:600;
+background:rgba(15,23,42,.88);border:1px solid rgba(255,255,255,.12);
+border-radius:11px;backdrop-filter:blur(10px);pointer-events:none
+}
 
-    * {
-      box-sizing: border-box;
-    }
+#message.active{background:rgba(21,128,61,.90)}
 
-    html,
-    body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #000;
-      font-family: Arial, sans-serif;
-    }
+#loading{
+position:fixed;inset:0;z-index:10001;display:flex;flex-direction:column;
+align-items:center;justify-content:center;background:#0f172a;color:#fff;
+transition:opacity .3s ease
+}
 
+.spinner{
+width:36px;height:36px;border:3px solid rgba(255,255,255,.15);
+border-top-color:#38bdf8;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:14px
+}
 
-    /* =====================================================
-       TOP AR HEADER
-       ===================================================== */
+@keyframes spin{to{transform:rotate(360deg)}}
 
-    #topBar {
+.loadingTitle{font-size:14px;font-weight:700}
+.loadingSub{font-size:10px;opacity:.55;margin-top:5px}
+</style>
 
-      position: fixed;
+<script>
 
-      top: 12px;
-      left: 12px;
-      right: 12px;
+const scriptURL='https://script.google.com/macros/s/AKfycbzEpfF8pJVOPFhJF0DJIIojictD5N9KpmmRjx7tN_0AphPqMyLhAvNxfX62zQFsygup2g/exec';
 
-      height: 54px;
+if('serviceWorker' in navigator){
+window.addEventListener('load',()=>{
+navigator.serviceWorker.register('./sw.js').catch(e=>console.log('SW:',e));
+});
+}
 
-      z-index: 9999;
+AFRAME.registerComponent('mark-done',{
+init:function(){
 
-      display: flex;
+let completed=false;
+const originalColor=this.el.getAttribute('color');
+const text=this.el.querySelector('.taskText');
+const status=this.el.querySelector('.taskStatus');
 
-      align-items: center;
+this.el.addEventListener('click',()=>{
 
-      justify-content: space-between;
+completed=!completed;
 
-      padding: 8px 14px;
+if(completed){
 
-      color: white;
+this.el.setAttribute('color','#dcfce7');
 
-      background:
-        rgba(15,23,42,0.90);
+if(text)text.setAttribute('color','#166534');
 
-      border:
-        1px solid
-        rgba(255,255,255,0.15);
+if(status){
+status.setAttribute('value','✓ DONE');
+status.setAttribute('color','#15803d');
+}
 
-      border-radius: 14px;
+}else{
 
-      backdrop-filter: blur(12px);
+this.el.setAttribute('color',originalColor);
 
-      pointer-events: none;
+if(text)text.setAttribute('color','#1e293b');
 
-    }
+if(status){
+status.setAttribute('value','OPEN');
+status.setAttribute('color','#64748b');
+}
 
+}
 
-    .brand {
+});
 
-      display: flex;
+}
+});
 
-      align-items: center;
+window.addEventListener('load',()=>{
 
-      gap: 10px;
+const loading=document.getElementById('loading');
 
-    }
+setTimeout(()=>{
+loading.style.opacity='0';
+setTimeout(()=>loading.style.display='none',350);
+},900);
 
+fetch(scriptURL)
+.then(r=>{
+if(!r.ok)throw new Error('Server error');
+return r.json();
+})
+.then(data=>{
 
-    .brandIcon {
+console.log('AR DATA:',data);
 
-      width: 34px;
-      height: 34px;
+const board=document.getElementById('board-data');
+const n1=document.getElementById('note1-data');
+const n2=document.getElementById('note2-data');
+const n3=document.getElementById('note3-data');
 
-      border-radius: 9px;
+if(board)board.setAttribute('value',data.Whiteboard||'No active project information');
 
-      display: flex;
+if(n1)n1.setAttribute('value',data.Note1||'No task available');
 
-      align-items: center;
-      justify-content: center;
+if(n2)n2.setAttribute('value',data.Note2||'No task available');
 
-      font-size: 13px;
+if(n3)n3.setAttribute('value',data.Note3||'No task available');
 
-      font-weight: bold;
+})
+.catch(error=>{
 
-      background:
-        linear-gradient(
-          135deg,
-          #2563eb,
-          #06b6d4
-        );
+console.error(error);
 
-    }
+document.getElementById('board-data').setAttribute(
+'value','Project information unavailable'
+);
 
+document.getElementById('note1-data').setAttribute(
+'value','Task data unavailable'
+);
 
-    .brandTitle {
+document.getElementById('note2-data').setAttribute(
+'value','Task data unavailable'
+);
 
-      font-size: 13px;
+document.getElementById('note3-data').setAttribute(
+'value','Task data unavailable'
+);
 
-      font-weight: 700;
+});
 
-      letter-spacing: .4px;
+const hiro=document.getElementById('hiro-marker');
+const kanji=document.getElementById('kanji-marker');
+const message=document.getElementById('message');
 
-    }
+hiro.addEventListener('markerFound',()=>{
+message.innerText='✓ EXECUTIVE PROJECT BOARD DETECTED';
+message.classList.add('active');
+});
 
+hiro.addEventListener('markerLost',()=>{
+message.innerText='SCAN HIRO MARKER FOR PROJECT SUMMARY';
+message.classList.remove('active');
+});
 
-    .brandSub {
+kanji.addEventListener('markerFound',()=>{
+message.innerText='✓ ACTIVE TASK BOARD DETECTED';
+message.classList.add('active');
+});
 
-      font-size: 9px;
+kanji.addEventListener('markerLost',()=>{
+message.innerText='SCAN KANJI MARKER FOR ACTIVE TASKS';
+message.classList.remove('active');
+});
 
-      opacity: .55;
+});
 
-      margin-top: 2px;
-
-    }
-
-
-    .online {
-
-      display: flex;
-
-      align-items: center;
-
-      gap: 6px;
-
-      font-size: 9px;
-
-      font-weight: bold;
-
-      color: #86efac;
-
-    }
-
-
-    .onlineDot {
-
-      width: 7px;
-      height: 7px;
-
-      border-radius: 50%;
-
-      background: #22c55e;
-
-      box-shadow:
-        0 0 8px
-        #22c55e;
-
-    }
-
-
-    /* =====================================================
-       BOTTOM MESSAGE
-       ===================================================== */
-
-    #message {
-
-      position: fixed;
-
-      left: 50%;
-
-      bottom: 18px;
-
-      transform:
-        translateX(-50%);
-
-      width: calc(100% - 40px);
-
-      max-width: 420px;
-
-      z-index: 9999;
-
-      padding: 12px 16px;
-
-      text-align: center;
-
-      color: white;
-
-      font-size: 11px;
-
-      font-weight: 600;
-
-      background:
-        rgba(15,23,42,.88);
-
-      border:
-        1px solid
-        rgba(255,255,255,.12);
-
-      border-radius: 13px;
-
-      backdrop-filter:
-        blur(12px);
-
-      pointer-events: none;
-
-    }
-
-
-    #message.active {
-
-      background:
-        rgba(21,128,61,.90);
-
-    }
-
-
-    /* =====================================================
-       LOADING
-       ===================================================== */
-
-    #loading {
-
-      position: fixed;
-
-      inset: 0;
-
-      z-index: 10001;
-
-      display: flex;
-
-      flex-direction: column;
-
-      align-items: center;
-
-      justify-content: center;
-
-      background: #0f172a;
-
-      color: white;
-
-      transition:
-        opacity .35s ease;
-
-    }
-
-
-    .spinner {
-
-      width: 38px;
-      height: 38px;
-
-      border:
-        3px solid
-        rgba(255,255,255,.15);
-
-      border-top-color:
-        #38bdf8;
-
-      border-radius: 50%;
-
-      animation:
-        spin .8s linear infinite;
-
-      margin-bottom: 15px;
-
-    }
-
-
-    @keyframes spin {
-
-      to {
-        transform: rotate(360deg);
-      }
-
-    }
-
-
-    .loadingTitle {
-
-      font-size: 14px;
-
-      font-weight: 700;
-
-    }
-
-
-    .loadingSub {
-
-      font-size: 10px;
-
-      opacity: .55;
-
-      margin-top: 5px;
-
-    }
-
-  </style>
-
-
-  <script>
-
-    /* =====================================================
-       GOOGLE APPS SCRIPT
-       ===================================================== */
-
-    const scriptURL =
-      'https://script.google.com/macros/s/AKfycbzEpfF8pJVOPFhJF0DJIIojictD5N9KpmmRjx7tN_0AphPqMyLhAvNxfX62zQFsygup2g/exec';
-
-
-    /* =====================================================
-       MARK DONE
-       ===================================================== */
-
-    AFRAME.registerComponent(
-      'mark-done',
-      {
-
-        init: function () {
-
-          let completed = false;
-
-          const originalColor =
-            this.el.getAttribute('color');
-
-          const text =
-            this.el.querySelector('.taskText');
-
-          const status =
-            this.el.querySelector('.taskStatus');
-
-
-          this.el.addEventListener(
-            'click',
-            () => {
-
-              completed = !completed;
-
-
-              if (completed) {
-
-                this.el.setAttribute(
-                  'color',
-                  '#dcfce7'
-                );
-
-                if (text) {
-
-                  text.setAttribute(
-                    'color',
-                    '#166534'
-                  );
-
-                }
-
-                if (status) {
-
-                  status.setAttribute(
-                    'value',
-                    '✓ COMPLETED'
-                  );
-
-                  status.setAttribute(
-                    'color',
-                    '#15803d'
-                  );
-
-                }
-
-              }
-
-              else {
-
-                this.el.setAttribute(
-                  'color',
-                  originalColor
-                );
-
-                if (text) {
-
-                  text.setAttribute(
-                    'color',
-                    '#1e293b'
-                  );
-
-                }
-
-                if (status) {
-
-                  status.setAttribute(
-                    'value',
-                    'OPEN'
-                  );
-
-                  status.setAttribute(
-                    'color',
-                    '#64748b'
-                  );
-
-                }
-
-              }
-
-            }
-
-          );
-
-        }
-
-      }
-    );
-
-
-    /* =====================================================
-       DATA LOAD
-       ===================================================== */
-
-    window.addEventListener(
-      'load',
-      function () {
-
-
-        /*
-         * IMPORTANT:
-         * AR is allowed to start independently.
-         */
-
-
-        setTimeout(
-          function () {
-
-            const loading =
-              document.getElementById(
-                'loading'
-              );
-
-            loading.style.opacity = '0';
-
-            setTimeout(
-              function () {
-
-                loading.style.display =
-                  'none';
-
-              },
-              400
-            );
-
-          },
-          1200
-        );
-
-
-        /* =================================================
-           LOAD GOOGLE SHEET
-           ================================================= */
-
-        fetch(scriptURL)
-
-          .then(
-            response => response.json()
-          )
-
-          .then(
-            data => {
-
-              console.log(
-                'AR DATA:',
-                data
-              );
-
-
-              const board =
-                document.getElementById(
-                  'board-data'
-                );
-
-              const note1 =
-                document.getElementById(
-                  'note1-data'
-                );
-
-              const note2 =
-                document.getElementById(
-                  'note2-data'
-                );
-
-              const note3 =
-                document.getElementById(
-                  'note3-data'
-                );
-
-
-              if (board) {
-
-                board.setAttribute(
-                  'value',
-                  data.Whiteboard ||
-                  'No active project information available.'
-                );
-
-              }
-
-
-              if (note1) {
-
-                note1.setAttribute(
-                  'value',
-                  data.Note1 ||
-                  'No task available'
-                );
-
-              }
-
-
-              if (note2) {
-
-                note2.setAttribute(
-                  'value',
-                  data.Note2 ||
-                  'No task available'
-                );
-
-              }
-
-
-              if (note3) {
-
-                note3.setAttribute(
-                  'value',
-                  data.Note3 ||
-                  'No task available'
-                );
-
-              }
-
-            }
-          )
-
-          .catch(
-            error => {
-
-              console.error(
-                'Google Sheet Error:',
-                error
-              );
-
-
-              /*
-               * IMPORTANT:
-               * AR objects remain visible even
-               * when the backend is unavailable.
-               */
-
-              document
-                .getElementById('board-data')
-                .setAttribute(
-                  'value',
-                  'Project information unavailable'
-                );
-
-
-              document
-                .getElementById('note1-data')
-                .setAttribute(
-                  'value',
-                  'Task data unavailable'
-                );
-
-
-              document
-                .getElementById('note2-data')
-                .setAttribute(
-                  'value',
-                  'Task data unavailable'
-                );
-
-
-              document
-                .getElementById('note3-data')
-                .setAttribute(
-                  'value',
-                  'Task data unavailable'
-                );
-
-            }
-          );
-
-
-        /* =================================================
-           MARKER EVENTS
-           ================================================= */
-
-        const hiro =
-          document.getElementById(
-            'hiro-marker'
-          );
-
-        const kanji =
-          document.getElementById(
-            'kanji-marker'
-          );
-
-        const message =
-          document.getElementById(
-            'message'
-          );
-
-
-        hiro.addEventListener(
-          'markerFound',
-          function () {
-
-            message.innerText =
-              '✓ EXECUTIVE PROJECT BOARD DETECTED';
-
-            message.classList.add(
-              'active'
-            );
-
-          }
-        );
-
-
-        hiro.addEventListener(
-          'markerLost',
-          function () {
-
-            message.innerText =
-              'SCAN THE HIRO MARKER FOR PROJECT SUMMARY';
-
-            message.classList.remove(
-              'active'
-            );
-
-          }
-        );
-
-
-        kanji.addEventListener(
-          'markerFound',
-          function () {
-
-            message.innerText =
-              '✓ ACTIVE TASK BOARD DETECTED';
-
-            message.classList.add(
-              'active'
-            );
-
-          }
-        );
-
-
-        kanji.addEventListener(
-          'markerLost',
-          function () {
-
-            message.innerText =
-              'SCAN THE KANJI MARKER FOR ACTIVE TASKS';
-
-            message.classList.remove(
-              'active'
-            );
-
-          }
-        );
-
-
-      }
-
-    );
-
-  </script>
-
+</script>
 </head>
-
 
 <body>
 
-
-  <!-- =====================================================
-       LOADING
-       ===================================================== -->
-
-  <div id="loading">
-
-    <div class="spinner"></div>
-
-    <div class="loadingTitle">
-      Initializing AR Workspace
-    </div>
-
-    <div class="loadingSub">
-      Preparing camera and AR markers
-    </div>
-
-  </div>
-
-
-  <!-- =====================================================
-       TOP BAR
-       ===================================================== -->
-
-  <div id="topBar">
-
-    <div class="brand">
-
-      <div class="brandIcon">
-        AR
-      </div>
-
-      <div>
-
-        <div class="brandTitle">
-          PROJECT AR WORKSPACE
-        </div>
-
-        <div class="brandSub">
-          REAL-TIME PROJECT VISUALIZATION
-        </div>
-
-      </div>
-
-    </div>
-
-
-    <div class="online">
-
-      <span class="onlineDot"></span>
-
-      ONLINE
-
-    </div>
-
-  </div>
-
-
-  <!-- =====================================================
-       BOTTOM MESSAGE
-       ===================================================== -->
-
-  <div id="message">
-
-    SCAN A MARKER TO VIEW PROJECT INFORMATION
-
-  </div>
-
-
-  <!-- =====================================================
-       AR SCENE
-       ===================================================== -->
-
-  <a-scene
-
-    embedded
-
-    renderer="
-      antialias:true;
-      alpha:true;
-    "
-
-    arjs="
-      sourceType:webcam;
-      debugUIEnabled:false;
-      sourceWidth:640;
-      sourceHeight:480;
-      displayWidth:640;
-      displayHeight:480;
-    "
-
-    vr-mode-ui="
-      enabled:false
-    "
-
-    cursor="
-      rayOrigin:mouse;
-      fuse:false;
-    "
-
-    raycaster="
-      objects:.clickable;
-    ">
-
-
-    <!-- ===================================================
-         AUDIO
-         =================================================== -->
-
-    <a-assets>
-
-      <audio
-        id="chime"
-        src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3?filename=success-1-6297.mp3"
-        preload="auto">
-      </audio>
-
-    </a-assets>
-
-
-    <!-- ===================================================
-         HIRO MARKER
-         EXECUTIVE BOARD
-         =================================================== -->
-
-    <a-marker
-
-      id="hiro-marker"
-
-      preset="hiro"
-
-      smooth="true"
-
-      smoothCount="15"
-
-      smoothTolerance="0.01"
-
-      smoothThreshold="5">
-
-
-      <!-- DARK OUTER FRAME -->
-
-      <a-plane
-
-        width="4.5"
-
-        height="3.5"
-
-        color="#0f172a"
-
-        position="
-          0
-          0
-          0.00">
-
-      </a-plane>
-
-
-      <!-- WHITE BOARD -->
-
-      <a-plane
-
-        width="4.25"
-
-        height="3.25"
-
-        color="#ffffff"
-
-        position="
-          0
-          0
-          0.03">
-
-
-        <!-- HEADER -->
-
-        <a-plane
-
-          width="4.25"
-
-          height=".60"
-
-          color="#f8fafc"
-
-          position="
-            0
-            1.325
-            0.03">
-
-        </a-plane>
-
-
-        <!-- BLUE STRIPE -->
-
-        <a-plane
-
-          width="4.25"
-
-          height=".045"
-
-          color="#2563eb"
-
-          position="
-            0
-            1.02
-            0.04">
-
-        </a-plane>
-
-
-        <!-- TITLE -->
-
-        <a-text
-
-          value="PROJECT EXECUTIVE SUMMARY"
-
-          color="#0f172a"
-
-          position="
-            -1.85
-            1.22
-            0.05"
-
-          width="3.7"
-
-          font="roboto"
-
-          fontWeight="bold">
-
-        </a-text>
-
-
-        <!-- SUBTITLE -->
-
-        <a-text
-
-          value="LIVE PROJECT STATUS"
-
-          color="#2563eb"
-
-          position="
-            -1.85
-            1.04
-            0.05"
-
-          width="2.5"
-
-          font="roboto"
-
-          fontWeight="bold">
-
-        </a-text>
-
-
-        <!-- TEXT BACKGROUND -->
-
-        <a-plane
-
-          width="3.75"
-
-          height="1.85"
-
-          color="#f8fafc"
-
-          position="
-            0
-            -0.05
-            0.035">
-
-        </a-plane>
-
-
-        <!-- MAIN RESULT -->
-
-        <a-text
-
-          id="board-data"
-
-          value="Loading project information..."
-
-          color="#1e293b"
-
-          position="
-            -1.75
-            0.75
-            0.06"
-
-          width="3.5"
-
-          wrap-count="43"
-
-          anchor="left"
-
-          baseline="top"
-
-          line-height="38"
-
-          font="roboto">
-
-        </a-text>
-
-
-        <!-- FOOTER -->
-
-        <a-plane
-
-          width="3.75"
-
-          height=".015"
-
-          color="#e2e8f0"
-
-          position="
-            0
-            -1.15
-            0.05">
-
-        </a-plane>
-
-
-        <a-text
-
-          value="HLL • PROJECT MANAGEMENT"
-
-          color="#94a3b8"
-
-          position="
-            -1.75
-            -1.35
-            0.06"
-
-          width="2.7"
-
-          font="roboto">
-
-        </a-text>
-
-
-      </a-plane>
-
-    </a-marker>
-
-
-    <!-- ===================================================
-         KANJI MARKER
-         TASK BOARD
-         =================================================== -->
-
-    <a-marker
-
-      id="kanji-marker"
-
-      preset="kanji"
-
-      smooth="true"
-
-      smoothCount="15"
-
-      smoothTolerance="0.01"
-
-      smoothThreshold="5">
-
-
-      <!-- BOARD BACKGROUND -->
-
-      <a-plane
-
-        width="4.7"
-
-        height="3.5"
-
-        color="#0f172a"
-
-        position="
-          0
-          0
-          0">
-
-      </a-plane>
-
-
-      <!-- BOARD HEADER -->
-
-      <a-text
-
-        value="ACTIVE TASK BOARD"
-
-        color="#ffffff"
-
-        align="center"
-
-        position="
-          0
-          1.32
-          0.05"
-
-        width="4"
-
-        font="roboto"
-
-        fontWeight="bold">
-
-      </a-text>
-
-
-      <a-text
-
-        value="TAP TASK CARD TO UPDATE STATUS"
-
-        color="#94a3b8"
-
-        align="center"
-
-        position="
-          0
-          1.08
-          0.05"
-
-        width="3"
-
-        font="roboto">
-
-      </a-text>
-
-
-      <!-- =================================================
-           TASK 1
-           ================================================= -->
-
-      <a-plane
-
-        class="clickable"
-
-        mark-done
-
-        width="1.25"
-
-        height="1.45"
-
-        color="#fef3c7"
-
-        position="
-          -1.45
-          0
-          0.06"
-
-        rotation="
-          0
-          0
-          2">
-
-
-        <!-- TOP STRIPE -->
-
-        <a-plane
-
-          width="1.25"
-
-          height=".13"
-
-          color="#f59e0b"
-
-          position="
-            0
-            .66
-            .03">
-
-        </a-plane>
-
-
-        <!-- TASK -->
-
-        <a-text
-
-          id="note1-data"
-
-          class="taskText"
-
-          value="Loading..."
-
-          color="#1e293b"
-
-          align="center"
-
-          position="
-            0
-            .02
-            .04"
-
-          width="2.25"
-
-          wrap-count="20"
-
-          font="roboto"
-
-          baseline="center">
-
-        </a-text>
-
-
-        <!-- STATUS -->
-
-        <a-text
-
-          class="taskStatus"
-
-          value="OPEN"
-
-          color="#64748b"
-
-          align="center"
-
-          position="
-            0
-            -.60
-            .04"
-
-          width="1.2"
-
-          font="roboto"
-
-          fontWeight="bold">
-
-        </a-text>
-
-      </a-plane>
-
-
-      <!-- =================================================
-           TASK 2
-           ================================================= -->
-
-      <a-plane
-
-        class="clickable"
-
-        mark-done
-
-        width="1.25"
-
-        height="1.45"
-
-        color="#fce7f3"
-
-        position="
-          0
-          0
-          0.06"
-
-        rotation="
-          0
-          0
-          -1.5">
-
-
-        <a-plane
-
-          width="1.25"
-
-          height=".13"
-
-          color="#ec4899"
-
-          position="
-            0
-            .66
-            .03">
-
-        </a-plane>
-
-
-        <a-text
-
-          id="note2-data"
-
-          class="taskText"
-
-          value="Loading..."
-
-          color="#1e293b"
-
-          align="center"
-
-          position="
-            0
-            .02
-            .04"
-
-          width="2.25"
-
-          wrap-count="20"
-
-          font="roboto"
-
-          baseline="center">
-
-        </a-text>
-
-
-        <a-text
-
-          class="taskStatus"
-
-          value="OPEN"
-
-          color="#64748b"
-
-          align="center"
-
-          position="
-            0
-            -.60
-            .04"
-
-          width="1.2"
-
-          font="roboto"
-
-          fontWeight="bold">
-
-        </a-text>
-
-      </a-plane>
-
-
-      <!-- =================================================
-           TASK 3
-           ================================================= -->
-
-      <a-plane
-
-        class="clickable"
-
-        mark-done
-
-        width="1.25"
-
-        height="1.45"
-
-        color="#e0f2fe"
-
-        position="
-          1.45
-          0
-          0.06"
-
-        rotation="
-          0
-          0
-          1">
-
-
-        <a-plane
-
-          width="1.25"
-
-          height=".13"
-
-          color="#0284c7"
-
-          position="
-            0
-            .66
-            .03">
-
-        </a-plane>
-
-
-        <a-text
-
-          id="note3-data"
-
-          class="taskText"
-
-          value="Loading..."
-
-          color="#1e293b"
-
-          align="center"
-
-          position="
-            0
-            .02
-            .04"
-
-          width="2.25"
-
-          wrap-count="20"
-
-          font="roboto"
-
-          baseline="center">
-
-        </a-text>
-
-
-        <a-text
-
-          class="taskStatus"
-
-          value="OPEN"
-
-          color="#64748b"
-
-          align="center"
-
-          position="
-            0
-            -.60
-            .04"
-
-          width="1.2"
-
-          font="roboto"
-
-          fontWeight="bold">
-
-        </a-text>
-
-      </a-plane>
-
-
-    </a-marker>
-
-
-    <!-- CAMERA -->
-
-    <a-entity camera></a-entity>
-
-
-  </a-scene>
+<div id="loading">
+<div class="spinner"></div>
+<div class="loadingTitle">Initializing AR Workspace</div>
+<div class="loadingSub">Preparing camera and project data</div>
+</div>
+
+<div id="topBar">
+<div class="brand">
+<div class="brandIcon">AR</div>
+<div>
+<div class="brandTitle">PROJECT AR WORKSPACE</div>
+<div class="brandSub">REAL-TIME PROJECT VISUALIZATION</div>
+</div>
+</div>
+<div class="online"><span class="onlineDot"></span>ONLINE</div>
+</div>
+
+<div id="message">SCAN A MARKER TO VIEW PROJECT INFORMATION</div>
+
+<a-scene
+embedded
+renderer="antialias:true;alpha:true;"
+arjs="sourceType:webcam;debugUIEnabled:false;sourceWidth:640;sourceHeight:480;displayWidth:640;displayHeight:480;"
+vr-mode-ui="enabled:false"
+cursor="rayOrigin:mouse;fuse:false"
+raycaster="objects:.clickable">
+
+<a-marker
+id="hiro-marker"
+preset="hiro"
+smooth="true"
+smoothCount="10"
+smoothTolerance="0.01"
+smoothThreshold="5">
+
+<a-entity position="0 0 0.12" scale=".42 .42 .42">
+
+<a-plane width="3.65" height="4.05" color="#0f172a" position="0 0 0"></a-plane>
+
+<a-plane width="3.43" height="3.83" color="#fff" position="0 0 .03">
+
+<a-plane width="3.43" height=".58" color="#f8fafc" position="0 1.625 .04"></a-plane>
+
+<a-plane width="3.43" height=".045" color="#2563eb" position="0 1.34 .05"></a-plane>
+
+<a-text
+value="PROJECT"
+color="#2563eb"
+position="-1.42 1.58 .06"
+width="2.4"
+font="roboto"
+fontWeight="bold">
+</a-text>
+
+<a-text
+value="EXECUTIVE SUMMARY"
+color="#0f172a"
+position="-1.42 1.39 .06"
+width="3"
+font="roboto"
+fontWeight="bold">
+</a-text>
+
+<a-plane width=".92" height=".26" color="#dcfce7" position="1.03 1.52 .06"></a-plane>
+
+<a-text
+value="● LIVE"
+color="#15803d"
+align="center"
+position="1.03 1.50 .07"
+width=".9"
+font="roboto"
+fontWeight="bold">
+</a-text>
+
+<a-plane
+width="3.02"
+height="2.55"
+color="#f8fafc"
+position="0 .03 .04">
+</a-plane>
+
+<a-text
+id="board-data"
+value="Loading project information..."
+color="#1e293b"
+position="-1.35 1.12 .07"
+width="2.75"
+wrap-count="34"
+anchor="left"
+baseline="top"
+line-height="36"
+font="roboto">
+</a-text>
+
+<a-plane
+width="3.02"
+height=".015"
+color="#cbd5e1"
+position="0 -1.28 .06">
+</a-plane>
+
+<a-text
+value="HLL • PROJECT MANAGEMENT"
+color="#64748b"
+align="center"
+position="0 -1.52 .07"
+width="2.3"
+font="roboto">
+</a-text>
+
+</a-plane>
+
+</a-entity>
+
+</a-marker>
+
+<a-marker
+id="kanji-marker"
+preset="kanji"
+smooth="true"
+smoothCount="10"
+smoothTolerance="0.01"
+smoothThreshold="5">
+
+<a-entity position="0 0 .12" scale=".45 .45 .45">
+
+<a-plane width="3.65" height="4.25" color="#0f172a" position="0 0 0"></a-plane>
+
+<a-text
+value="ACTIVE TASK BOARD"
+color="#fff"
+align="center"
+position="0 1.82 .05"
+width="3.1"
+font="roboto"
+fontWeight="bold">
+</a-text>
+
+<a-text
+value="TAP TASK TO UPDATE"
+color="#94a3b8"
+align="center"
+position="0 1.59 .05"
+width="2.5"
+font="roboto">
+</a-text>
+
+
+<a-plane
+class="clickable"
+mark-done
+width="3.05"
+height=".82"
+color="#fef3c7"
+position="0 1.00 .06">
+
+<a-plane
+width=".10"
+height=".82"
+color="#f59e0b"
+position="-1.475 0 .03">
+</a-plane>
+
+<a-text
+value="TASK 01"
+color="#92400e"
+position="-1.28 .23 .04"
+width=".9"
+font="roboto"
+fontWeight="bold">
+</a-text>
+
+<a-text
+id="note1-data"
+class="taskText"
+value="Loading..."
+color="#1e293b"
+position="-1.28 -.05 .04"
+width="2.25"
+wrap-count="27"
+anchor="left"
+baseline="center"
+font="roboto">
+</a-text>
+
+<a-text
+class="taskStatus"
+value="OPEN"
+color="#64748b"
+align="center"
+position="1.05 .23 .04"
+width=".7"
+font="roboto"
+fontWeight="bold">
+</a-text>
+
+</a-plane>
+
+
+<a-plane
+class="clickable"
+mark-done
+width="3.05"
+height=".82"
+color="#fce7f3"
+position="0 0 .06">
+
+<a-plane
+width=".10"
+height=".82"
+color="#ec4899"
+position="-1.475 0 .03">
+</a-plane>
+
+<a-text
+value="TASK 02"
+color="#9d174d"
+position="-1.28 .23 .04"
+width=".9"
+font="roboto"
+fontWeight="bold">
+</a-text>
+
+<a-text
+id="note2-data"
+class="taskText"
+value="Loading..."
+color="#1e293b"
+position="-1.28 -.05 .04"
+width="2.25"
+wrap-count="27"
+anchor="left"
+baseline="center"
+font="roboto">
+</a-text>
+
+<a-text
+class="taskStatus"
+value="OPEN"
+color="#64748b"
+align="center"
+position="1.05 .23 .04"
+width=".7"
+font="roboto"
+fontWeight="bold">
+</a-text>
+
+</a-plane>
+
+
+<a-plane
+class="clickable"
+mark-done
+width="3.05"
+height=".82"
+color="#e0f2fe"
+position="0 -1.00 .06">
+
+<a-plane
+width=".10"
+height=".82"
+color="#0284c7"
+position="-1.475 0 .03">
+</a-plane>
+
+<a-text
+value="TASK 03"
+color="#075985"
+position="-1.28 .23 .04"
+width=".9"
+font="roboto"
+fontWeight="bold">
+</a-text>
+
+<a-text
+id="note3-data"
+class="taskText"
+value="Loading..."
+color="#1e293b"
+position="-1.28 -.05 .04"
+width="2.25"
+wrap-count="27"
+anchor="left"
+baseline="center"
+font="roboto">
+</a-text>
+
+<a-text
+class="taskStatus"
+value="OPEN"
+color="#64748b"
+align="center"
+position="1.05 .23 .04"
+width=".7"
+font="roboto"
+fontWeight="bold">
+</a-text>
+
+</a-plane>
+
+
+<a-text
+value="HLL • AR WORKSPACE"
+color="#64748b"
+align="center"
+position="0 -1.73 .05"
+width="2.1"
+font="roboto">
+</a-text>
+
+</a-entity>
+
+</a-marker>
+
+<a-entity camera></a-entity>
+
+</a-scene>
 
 </body>
 </html>
